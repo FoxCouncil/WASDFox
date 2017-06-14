@@ -4,7 +4,7 @@ const smolVillage = [
     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 2, 1, 1, 3, 1, 1, 1],
+    [1, 1, 1, 2, 1, 1, 3, 1, 3, 1],
     [1, 1, 1, 2, 2, 2, 2, 2, 2, 2],
     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 2, 1, 1, 1, 1, 1, 1],
@@ -39,7 +39,7 @@ function main(window) {
     window.addEventListener('keydown', handleKeyboard);
 
     tileSet = new createjs.SpriteSheet({
-        images: ["assets/art/TileSheet.png"],
+        images: ["assets/art/tilesheet.png"],
         frames: {
             height: tileSize,
             width: tileSize
@@ -102,14 +102,6 @@ function buildMap() {
     debugContainer.removeAllChildren();
     
     if (debugShow) {
-        let aLineT = new createjs.Shape();
-        aLineT.graphics.beginStroke('#F00').drawRect(stage.canvas.width / 2, 0, 1, stage.canvas.height);
-        debugContainer.addChild(aLineT);
-
-        let aLineW = new createjs.Shape();
-        aLineW.graphics.beginStroke('#0F0').drawRect(0, stage.canvas.height / 2, stage.canvas.width, 1);
-        debugContainer.addChild(aLineW);
-
         var textPlayerPos = new createjs.Text(`Player Pos: ${playerX}x${playerY}`, "20px Courier New", "#000");
         textPlayerPos.x = 10;
         textPlayerPos.y = 10;
@@ -157,7 +149,7 @@ function buildMap() {
 
                 if (x == centerX && y == centerY) {
                     if (player === undefined) {
-                        player = new createjs.Bitmap('assets/art/SpriteFox-Male.png');
+                        player = new createjs.Bitmap('assets/art/spritefox-male.png');
                         stage.addChild(player);
                     }
 

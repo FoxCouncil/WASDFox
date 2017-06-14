@@ -1,0 +1,227 @@
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// identity function for calling harmony imports with the correct context
+/******/ 	__webpack_require__.i = function(value) { return value; };
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, {
+/******/ 				configurable: false,
+/******/ 				enumerable: true,
+/******/ 				get: getter
+/******/ 			});
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__player_js__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__player_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__player_js__);
+
+
+class Game {
+    constructor(tileSize=32, frameRate=60, canvasId='gs') {
+        this.tileSize = tileSize;
+        this.frameRate = frameRate;
+        this.canvasId = canvasId;
+
+        this.layers = [];
+
+        this.initialized = false;
+        this.drawInvalidated = false;
+    }
+
+    initialize() {
+        if (!this.initialized) {
+            this.stage = new createjs.Stage(this.canvasId);
+
+            this.resize();
+
+            createjs.Ticker.useRAF = true;
+            createjs.Ticker.setFPS(this.frameRate);
+            createjs.Ticker.addEventListener("tick", () => this.tick());
+
+            window.addEventListener('resize', () => this.resize());
+            window.addEventListener('keydown', (e) => this.handleKeyboard(e));            
+
+            this.initialized = true;
+        } else {
+            console.error('Game already initialized!');
+        }
+    }
+
+    buildDebugView() {
+        if (this.debugContainer === undefined) {
+            this.debugContainer = new createjs.Container();
+            this.debugContainer.visible = false;
+            this.stage.addChild(this.debugContainer);
+        } else {
+            this.debugContainer.removeAllChildren();
+        }
+        
+        let lineX = new createjs.Shape();
+        lineX.name = 'linex';
+        lineX.graphics.beginStroke('#F00').drawRect(this.width / 2, 0, 1, this.height);
+        this.debugContainer.addChild(lineX);
+
+        let lineY = new createjs.Shape();
+        lineY.name = 'liney';
+        lineY.graphics.beginStroke('#0F0').drawRect(0, this.height / 2, this.width, 1);
+        this.debugContainer.addChild(lineY);        
+    }
+
+    get width() {
+        return this.stage.canvas.width;
+    }
+
+    set width(width) {
+        this.stage.canvas.width = width;
+    }
+
+    get height() {
+        return this.stage.canvas.height;
+    }
+
+    set height(height) {
+        this.stage.canvas.height = height;
+    }
+
+    tick() {
+        this.stage.update();
+    }
+
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        
+        this.buildDebugView();
+    }
+
+    movePlayer(x, y) {
+
+    }
+
+    toggleDebugView() {
+        this.debugContainer.visible = !this.debugContainer.visible;
+    }
+
+    handleKeyboard(keyEvent) {
+        switch(keyEvent.keyCode) {
+            case 87:
+            {
+                this.movePlayer(0, -1);
+            }
+            break;
+
+            case 65:
+            {
+                this.movePlayer(-1, 0);
+            }
+            break;
+
+            case 83:
+            {
+                this.movePlayer(0, 1);
+            }
+            break;
+
+            case 68:
+            {
+                this.movePlayer(1, 0);
+            }
+            break;
+
+            case 77:
+            {
+                this.toggleDebugView();
+            }
+            break;
+
+            default:
+            {
+                // console.log(keyEvent.keyCode);
+            }
+            break;
+        }
+    }
+}
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports) {
+
+class Player {
+    constructor(name='Fox') {
+        this.name = name;
+    }
+}
+
+/***/ }),
+/* 2 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__libs_game_js__ = __webpack_require__(0);
+
+
+let game = new __WEBPACK_IMPORTED_MODULE_0__libs_game_js__["default"]();
+
+/***/ })
+/******/ ]);
