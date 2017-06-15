@@ -1,12 +1,24 @@
-import Player from './player.js'
-
 class Game {
     constructor(tileSize=32, frameRate=60, canvasId='gs') {
         this.tileSize = tileSize;
         this.frameRate = frameRate;
         this.canvasId = canvasId;
 
-        this.layers = [];
+        this.map = {
+            base: [],
+            fringe: [],
+            object: []
+        };
+
+        this.tileset = this.tileset = new createjs.SpriteSheet({
+            images: ['art/tileset.png'],
+            frames: {
+                height: this.tileSize,
+                width: this.tileSize
+            }
+        });
+
+        this.map = new createjs.Container();
 
         this.initialized = false;
         this.drawInvalidated = false;
@@ -112,7 +124,7 @@ class Game {
             }
             break;
 
-            case 77:
+            case 187:
             {
                 this.toggleDebugView();
             }
@@ -120,9 +132,19 @@ class Game {
 
             default:
             {
-                // console.log(keyEvent.keyCode);
+                console.log(keyEvent.keyCode);
             }
             break;
         }
+    }
+
+    loadTileset(tilesetUri) {
+        this.tileset = new createjs.SpriteSheet({
+            images: [tilesetUri],
+            frames: {
+                height: this.tileSize,
+                width: this.tileSize
+            }
+        });
     }
 }

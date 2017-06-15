@@ -2,13 +2,45 @@
 <html lang="en">
     <head>
         <meta charset="utf-8">
+        
         <title>WASDFox - Heed The Call</title>
-        <link rel="stylesheet" type="text/css" href="css/game.css">
+
+        <link href="https://fonts.googleapis.com/css?family=Indie+Flower|Itim" rel="stylesheet">
+        <link rel="stylesheet" type="text/css" href="game.css">
+        
         <!--[if IE]><script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
     </head>
-    <body onload="var game = new Game(); game.initialize();">
+    <body>
         <canvas id="gs"></canvas>
+        <div id="newplayer" class="window hidden">
+            <h1>New Victim!</h1>
+            <label>
+                <span>Name</span> 
+                <input type="text" name="name" value="Fox">
+            </label>
+            <label>
+                <span>Gender</span>
+                <input type="text" name="name" value="male">
+            </label>
+            <label>
+                <span>Strength</span>
+                <input type="number" name="points" min="0" max="10">
+            </label>
+            <label>
+                <span>Constitution</span>
+                <input type="number" name="points" min="0" max="10">
+            </label>
+            <label>
+                <span>Luck</span>
+                <input type="number" name="points" min="0" max="10">
+            </label>
+            <label>
+                <span>Sexiness</span>
+                <input type="number" name="points" min="0" max="10">
+            </label>
+            <input type="button" value="Start Game">
+        </div>
         <script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
-        <script src="js/newgame.js"></script>
+        <script src="game.js"></script>
     </body>
 </html>
