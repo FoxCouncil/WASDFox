@@ -24,21 +24,25 @@
             </label>
             <label>
                 <span>Strength</span>
-                <input type="number" name="points" min="0" max="10">
+                <input type="number" name="strength" value="5" min="0" max="10">
             </label>
             <label>
                 <span>Constitution</span>
-                <input type="number" name="points" min="0" max="10">
+                <input type="number" name="constitution" value="5" min="0" max="10">
             </label>
             <label>
                 <span>Luck</span>
-                <input type="number" name="points" min="0" max="10">
+                <input type="number" name="luck" value="5" min="0" max="10">
             </label>
             <label>
                 <span>Sexiness</span>
-                <input type="number" name="points" min="0" max="10">
+                <input type="number" name="sexiness" value="5" min="0" max="10">
             </label>
-            <input type="button" value="Start Game">
+            <label>
+                <span>Points Left</span>
+                <input type="number" name="pointsleft" value="0" min="0" max="20" readonly>
+            </label>
+            <input type="button" name="startgamebutton" value="Start Game">
         </div>
         <script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
         <script src="game.js"></script>

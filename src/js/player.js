@@ -3,6 +3,7 @@ class Player {
         const statNames = ['Strength', 'Const', 'Luck', 'Sexiness'];
         return statNames;
     }
+    
     constructor(name='Fox', gender='male') {
         this.name = name;
         this.gender = gender;

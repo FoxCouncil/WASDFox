@@ -1,10 +1,18 @@
+const STATE_UNINITIALIZED = Symbol('STATE_UNINITIALIZED');
+const STATE_MAINMENU = Symbol('STATE_MAINMENU');
+const STATE_PLAY = Symbol('STATE_PLAY');
+
 class Game {
     constructor(tileSize=32, frameRate=60, canvasId='gs') {
         this.tileSize = tileSize;
         this.frameRate = frameRate;
         this.canvasId = canvasId;
 
-        this.map = {
+        this.player = null;
+
+        this.gameMap = {
+            width: 0,
+            height: 0,
             base: [],
             fringe: [],
             object: []
@@ -19,14 +27,19 @@ class Game {
         });
 
         this.map = new createjs.Container();
+        this.playerIcon = new createjs.Container();
 
-        this.initialized = false;
-        this.drawInvalidated = false;
+        // Views
+        this.viewNewPlayer = document.getElementById('newplayer');
+
+        this.state = STATE_UNINITIALIZED;
     }
 
     initialize() {
-        if (!this.initialized) {
+        if (this.state == STATE_UNINITIALIZED) {
             this.stage = new createjs.Stage(this.canvasId);
+            this.stage.addChild(this.map);
+            this.stage.addChild(this.playerIcon);
 
             this.resize();
 
@@ -35,9 +48,14 @@ class Game {
             createjs.Ticker.addEventListener("tick", () => this.tick());
 
             window.addEventListener('resize', () => this.resize());
-            window.addEventListener('keydown', (e) => this.handleKeyboard(e));            
+            window.addEventListener('keydown', (e) => this.handleKeyboard(e));
 
-            this.initialized = true;
+            this.queue = new createjs.LoadQueue();
+            this.queue.installPlugin(createjs.JSON);
+            this.queue.on('fileload', this.preloaderFileReady, this);
+            this.queue.on('complete', this.preloaderComplete, this);
+            
+            this.queue.loadFile('maps/home.json');
         } else {
             console.error('Game already initialized!');
         }
@@ -88,10 +106,109 @@ class Game {
         this.height = window.innerHeight;
         
         this.buildDebugView();
+        this.drawMap();
+    }
+
+    setState(newState) {
+        if (typeof newState !== 'symbol' || newState === STATE_UNINITIALIZED) {
+            throw 'InvalidStateException';
+        }
+        
+        if (this.state === newState) {
+            return;
+        }
+
+        this.state = newState;
+
+        switch (newState) {
+            case STATE_MAINMENU: {
+                this.viewNewPlayer.classList.remove('hidden');
+                if (document.getElementsByName('startgamebutton')[0].onclick == null) {
+                    var self = this;
+                    document.getElementsByName('startgamebutton')[0].onclick = function() {
+                        self.player = new Player();
+                        self.player.x = 50;
+                        self.player.y = 50;
+                        self.setState(STATE_PLAY);
+                    }
+                }
+            }
+            break;
+
+            case STATE_PLAY: {
+                this.viewNewPlayer.classList.add('hidden');
+                this.drawMap();
+            }
+            break;
+        }
+    }
+
+    drawMap() {
+        if (this.state != STATE_PLAY) {
+            return;
+        }
+
+        let gameMap = this.gameMap;
+        
+        this.map.removeAllChildren();
+
+        if (gameMap.base !== undefined && gameMap.base.length > 0) {
+            let totalTilesX = this.width / this.tileSize;
+            let totalTilesY = this.height / this.tileSize;
+
+            let drawTotalTilesX = totalTilesX + 2;
+            let drawTotalTilesY = totalTilesY + 2;
+
+            let centerX = Math.floor(totalTilesX / 2);
+            let centerY = Math.floor(totalTilesY / 2);
+
+            let drawOffsetX = centerX - this.player.x;
+            let drawOffsetY = centerY - this.player.y;
+
+            let tile = new createjs.Sprite(this.tileset);    
+
+            for (let x = 0; x < drawTotalTilesX; x++) {
+                for (let y = 0; y < drawTotalTilesY; y++) {
+                    let alterX = x - drawOffsetX;
+                    let alterY = y - drawOffsetY;
+
+                    if ((alterX >= 0 && alterX < this.gameMap.width) && 
+                        (alterY >= 0 && alterY < this.gameMap.height)) {
+
+                        let aTile = tile.clone();
+                        aTile.x = x * this.tileSize;
+                        aTile.y = y * this.tileSize;
+
+                        let aTileId = alterX + (alterY * this.gameMap.width);
+
+                        aTile.gotoAndStop(this.gameMap.base[aTileId] - 1);
+
+                        this.map.addChild(aTile);
+                    }
+
+                    if (x == centerX && y == centerY) {
+                        if (this.playerIcon.children.length === 0) {
+                            this.playerIcon.addChild(this.player.image);
+                        }
+
+                        this.player.image.x = x * this.tileSize;
+                        this.player.image.y = y * this.tileSize;
+                    }
+                }            
+            }
+        }
     }
 
     movePlayer(x, y) {
+        if (this.player.x + x >= 0 && this.player.x + x < this.gameMap.width) {
+            this.player.x += x;
+        }    
 
+        if (this.player.y + y >= 0 && this.player.y + y < this.gameMap.height) {
+            this.player.y += y;
+        }
+
+        this.drawMap();
     }
 
     toggleDebugView() {
@@ -146,5 +263,24 @@ class Game {
                 width: this.tileSize
             }
         });
+    }
+
+    preloaderComplete(e) {
+        this.setState(STATE_MAINMENU);
+    }
+
+    preloaderFileReady(fileLoadEvent) {
+        let file = fileLoadEvent.item;
+        let type = file.type
+
+        if (type == 'json') {
+            let jsonData = fileLoadEvent.result;
+            if (jsonData.type !== undefined && jsonData.type === 'map') {
+                this.gameMap.width = jsonData.width;
+                this.gameMap.height = jsonData.height;
+                this.gameMap.base = jsonData.layers[0].data;
+                // TODO: more layers!
+            }
+        }
     }
 }

@@ -12,8 +12,12 @@ gulp.task('webserver', function() {
   });
 });
 
-gulp.task('assets', function() {
+gulp.task('assets-art', function() {
     return gulp.src('src/assets/**/*.png').pipe(gulp.dest('bin'));
+});
+
+gulp.task('assets-maps', function() {
+    return gulp.src('src/assets/maps/*.json').pipe(gulp.dest('bin/maps'));
 });
 
 gulp.task('scripts', function() {
@@ -36,7 +40,7 @@ gulp.task('clean', function() {
     return gulp.src('bin', {read: false}).pipe(clean());
 });
 
-gulp.task('build', ['assets', 'html', 'scripts', 'styles']);
+gulp.task('build', ['assets-art', 'assets-maps', 'html', 'scripts', 'styles']);
 
 gulp.task('watch', ['build'], function() {
   gulp.watch('./src/**/*.*', ['build']);
