@@ -18,14 +18,6 @@ class Game {
             object: []
         };
 
-        this.tileset = this.tileset = new createjs.SpriteSheet({
-            images: ['art/tileset.png'],
-            frames: {
-                height: this.tileSize,
-                width: this.tileSize
-            }
-        });
-
         this.map = new createjs.Container();
         this.playerIcon = new createjs.Container();
 
@@ -37,6 +29,8 @@ class Game {
 
     initialize() {
         if (this.state == STATE_UNINITIALIZED) {
+            this.loadTileset('art/tileset.png');
+            
             this.stage = new createjs.Stage(this.canvasId);
             this.stage.addChild(this.map);
             this.stage.addChild(this.playerIcon);
