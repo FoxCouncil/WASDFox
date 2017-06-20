@@ -23,6 +23,17 @@ class Game {
 
         // Views
         this.viewNewPlayer = document.getElementById('newplayer');
+        this.viewNewPlayerStats = document.getElementById('newplayer-statlist');
+
+        this.viewGameBar = document.getElementById('gamebar');
+
+        this.hpValue = document.getElementById('value-hp');
+        this.hpTotal = document.getElementById('value-total-hp');
+
+        this.manaValue = document.getElementById('value-mana');
+        this.manaTotal = document.getElementById('value-total-mana');
+
+        this.statusBar = document.getElementById('gamebar-right');
 
         this.state = STATE_UNINITIALIZED;
     }
@@ -55,25 +66,6 @@ class Game {
         }
     }
 
-    buildDebugView() {
-        if (this.debugContainer === undefined) {
-            this.debugContainer = new createjs.Container();
-            this.debugContainer.visible = false;
-            this.stage.addChild(this.debugContainer);
-        } else {
-            this.debugContainer.removeAllChildren();
-        }
-        
-        let lineX = new createjs.Shape();
-        lineX.name = 'linex';
-        lineX.graphics.beginStroke('#F00').drawRect(this.width / 2, 0, 1, this.height);
-        this.debugContainer.addChild(lineX);
-
-        let lineY = new createjs.Shape();
-        lineY.name = 'liney';
-        lineY.graphics.beginStroke('#0F0').drawRect(0, this.height / 2, this.width, 1);
-        this.debugContainer.addChild(lineY);        
-    }
 
     get width() {
         return this.stage.canvas.width;
@@ -98,9 +90,8 @@ class Game {
     resize() {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
-        
-        this.buildDebugView();
-        this.drawMap();
+
+        this.draw();
     }
 
     setState(newState) {
@@ -116,7 +107,64 @@ class Game {
 
         switch (newState) {
             case STATE_MAINMENU: {
+                while (this.viewNewPlayerStats.hasChildNodes()) {
+                    this.viewNewPlayerStats.removeChild(this.viewNewPlayerStats.lastChild);
+                }
+
+                for (var idx = 0; idx < Player.StatNames.length; idx++) {
+                    let statName = Player.StatNames[idx];
+
+                    let statLabel = document.createElement('label');
+                    let statSpan = document.createElement('span');
+                    statSpan.innerText = statName;
+                    statLabel.appendChild(statSpan);
+                    let statInput = document.createElement('input');
+                    statInput.setAttribute('class', 'player-stat-input');
+                    statInput.setAttribute('type', 'number');
+                    statInput.setAttribute('name', statName.toLowerCase());
+                    statInput.setAttribute('value', '5');
+                    statInput.setAttribute('min', '0');
+                    statLabel.appendChild(statInput);    
+                    this.viewNewPlayerStats.appendChild(statLabel);                
+                }
+
+                const statsCalculator = function(e) {
+                    let statInputs = document.getElementsByClassName('player-stat-input');
+                    let totalPoints = statInputs.length * 5;
+
+                    let lastStatInput;
+                    for (var idx = 0; idx < statInputs.length; idx++) {
+                        lastStatInput = statInputs[idx];
+                        if (lastStatInput.valueAsNumber < 0) {
+                            lastStatInput.value = 0;
+                        }
+
+                        if (totalPoints > 0) {
+                            totalPoints -= lastStatInput.valueAsNumber;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if (totalPoints < 0) {
+                        let fuck = Math.abs(totalPoints);
+
+                        lastStatInput.value -= fuck;
+                        totalPoints += fuck;
+                    }
+
+                    document.getElementsByName('pointsleft')[0].value = totalPoints;
+                };
+
+                let statInputs = document.getElementsByClassName('player-stat-input');
+
+                for (var idx = 0; idx < statInputs.length; idx++) {
+                    var statInput = statInputs[idx];
+                    statInput.addEventListener('input', statsCalculator);                    
+                }
+
                 this.viewNewPlayer.classList.remove('hidden');
+                this.viewGameBar.classList.add('hidden');
                 if (document.getElementsByName('startgamebutton')[0].onclick == null) {
                     var self = this;
                     document.getElementsByName('startgamebutton')[0].onclick = function() {
@@ -125,16 +173,54 @@ class Game {
                         self.player.y = 50;
                         self.setState(STATE_PLAY);
                     }
+
+                    // DEV ONLY
+                    document.getElementsByName('startgamebutton')[0].click();
                 }
             }
             break;
 
             case STATE_PLAY: {
                 this.viewNewPlayer.classList.add('hidden');
-                this.drawMap();
+                this.viewGameBar.classList.remove('hidden');
+
+                this.showMessage('You awake, dazed and confused.');
+
+                this.draw();
             }
             break;
         }
+    }
+
+    draw() {
+        this.drawDebugView();
+        
+        if (this.state != STATE_PLAY) {
+            return;
+        }
+        
+        this.drawMap();
+        this.drawInterface();
+    }
+
+    drawDebugView() {
+        if (this.debugContainer === undefined) {
+            this.debugContainer = new createjs.Container();
+            this.debugContainer.visible = false;
+            this.stage.addChild(this.debugContainer);
+        } else {
+            this.debugContainer.removeAllChildren();
+        }
+        
+        let lineX = new createjs.Shape();
+        lineX.name = 'linex';
+        lineX.graphics.beginStroke('#F00').drawRect(this.width / 2, 0, 1, this.height);
+        this.debugContainer.addChild(lineX);
+
+        let lineY = new createjs.Shape();
+        lineY.name = 'liney';
+        lineY.graphics.beginStroke('#0F0').drawRect(0, this.height / 2, this.width, 1);
+        this.debugContainer.addChild(lineY);        
     }
 
     drawMap() {
@@ -159,25 +245,45 @@ class Game {
             let drawOffsetX = centerX - this.player.x;
             let drawOffsetY = centerY - this.player.y;
 
-            let tile = new createjs.Sprite(this.tileset);    
+            let tile = new createjs.Sprite(this.tileset);
+
+            let tileTotal = 0;
 
             for (let x = 0; x < drawTotalTilesX; x++) {
                 for (let y = 0; y < drawTotalTilesY; y++) {
                     let alterX = x - drawOffsetX;
                     let alterY = y - drawOffsetY;
 
-                    if ((alterX >= 0 && alterX < this.gameMap.width) && 
-                        (alterY >= 0 && alterY < this.gameMap.height)) {
-
-                        let aTile = tile.clone();
-                        aTile.x = x * this.tileSize;
-                        aTile.y = y * this.tileSize;
-
+                    if ((alterX >= 0 && alterX < this.width && alterX < this.gameMap.width) && 
+                        (alterY >= 0 && alterY < this.height && alterY < this.gameMap.height)) {
                         let aTileId = alterX + (alterY * this.gameMap.width);
+                        let posX = x * this.tileSize;
+                        let posY = y * this.tileSize;
 
-                        aTile.gotoAndStop(this.gameMap.base[aTileId] - 1);
+                        if (posX < 0 && posY < 0) { break; }
+                        if (posX > this.width && posY > this.height) { break; }
 
-                        this.map.addChild(aTile);
+                        {
+                            let aTile = tile.clone();
+                            aTile.x = posX;
+                            aTile.y = posY;
+
+                            aTile.gotoAndStop(this.gameMap.base[aTileId] - 1);
+
+                            this.map.addChild(aTile);
+                            tileTotal++;
+                        }
+
+                        if (this.gameMap.base[aTileId] != undefined && this.gameMap.fringe[aTileId] != 0) {
+                            let aTile = tile.clone();
+                            aTile.x = posX;
+                            aTile.y = posY;
+
+                            aTile.gotoAndStop(this.gameMap.fringe[aTileId] - 1);
+
+                            this.map.addChild(aTile);
+                            tileTotal++;
+                        }
                     }
 
                     if (x == centerX && y == centerY) {
@@ -190,7 +296,24 @@ class Game {
                     }
                 }            
             }
+
+            console.log(`${tileTotal} rendered!`);
         }
+    }
+
+    drawInterface() {
+        this.hpValue.innerText = this.player.health;
+        this.hpTotal.innerText = this.player.totalHealth;
+
+        this.manaValue.innerText = this.player.magic;
+        this.manaTotal.innerText = this.player.totalMagic;
+    }
+
+    showMessage(msg) {
+        let newMsg = document.createElement('div');
+        newMsg.innerText = msg;
+        this.statusBar.appendChild(newMsg);
+        this.statusBar.scrollTop = this.statusBar.scrollHeight;
     }
 
     movePlayer(x, y) {
@@ -202,7 +325,7 @@ class Game {
             this.player.y += y;
         }
 
-        this.drawMap();
+        this.draw();
     }
 
     toggleDebugView() {
@@ -210,27 +333,35 @@ class Game {
     }
 
     handleKeyboard(keyEvent) {
+        if (this.state != STATE_PLAY) {
+            return;
+        }
+
         switch(keyEvent.keyCode) {
             case 87:
             {
+                // this.showMessage(`${this.player.name} walks North`);
                 this.movePlayer(0, -1);
             }
             break;
 
             case 65:
             {
+                // this.showMessage(`${this.player.name} walks West`);
                 this.movePlayer(-1, 0);
             }
             break;
 
             case 83:
             {
+                // this.showMessage(`${this.player.name} walks South`);
                 this.movePlayer(0, 1);
             }
             break;
 
             case 68:
             {
+                // this.showMessage(`${this.player.name} walks East`);
                 this.movePlayer(1, 0);
             }
             break;
@@ -273,6 +404,7 @@ class Game {
                 this.gameMap.width = jsonData.width;
                 this.gameMap.height = jsonData.height;
                 this.gameMap.base = jsonData.layers[0].data;
+                this.gameMap.fringe = jsonData.layers[1].data;
                 // TODO: more layers!
             }
         }
