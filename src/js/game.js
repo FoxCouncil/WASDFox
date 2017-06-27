@@ -8,18 +8,13 @@ class Game {
         this.frameRate = frameRate;
         this.canvasId = canvasId;
 
-        this.player = null;
+        this.maps = [];
 
-        this.gameMap = {
-            width: 0,
-            height: 0,
-            base: [],
-            fringe: [],
-            object: []
-        };
+        this.currentMap = null;
+        this.currentPlayer = null;        
 
-        this.map = new createjs.Container();
-        this.playerIcon = new createjs.Container();
+        this.containerMap = new createjs.Container();
+        this.containerPlayer = new createjs.Container();
 
         // Views
         this.viewNewPlayer = document.getElementById('newplayer');
@@ -35,16 +30,21 @@ class Game {
 
         this.statusBar = document.getElementById('gamebar-right');
 
+        this.statsView = new Stats();
+
         this.state = STATE_UNINITIALIZED;
     }
 
     initialize() {
         if (this.state == STATE_UNINITIALIZED) {
+            
+            document.body.appendChild( this.statsView.dom );
+
             this.loadTileset('art/tileset.png');
             
             this.stage = new createjs.Stage(this.canvasId);
-            this.stage.addChild(this.map);
-            this.stage.addChild(this.playerIcon);
+            this.stage.addChild(this.containerMap);
+            this.stage.addChild(this.containerPlayer);
 
             this.resize();
 
@@ -66,7 +66,6 @@ class Game {
         }
     }
 
-
     get width() {
         return this.stage.canvas.width;
     }
@@ -84,7 +83,21 @@ class Game {
     }
 
     tick() {
+        this.statsView.begin();
+
+        /*for (var idx = 0; idx < 1000; idx++) {
+            let rndTile = this.containerMap.getChildAt(this.randomNumber(0, this.containerMap.numChildren));
+            if (rndTile !== undefined) {
+                rndTile.alpha -= 0.33;
+                rndTile.rotation += 45;
+                if (rndTile.alpha < 0) {
+                    rndTile.alpha = 1;
+                }
+            }         
+        }*/
+
         this.stage.update();
+        this.statsView.end();
     }
 
     resize() {
@@ -168,9 +181,10 @@ class Game {
                 if (document.getElementsByName('startgamebutton')[0].onclick == null) {
                     var self = this;
                     document.getElementsByName('startgamebutton')[0].onclick = function() {
-                        self.player = new Player();
-                        self.player.x = 50;
-                        self.player.y = 50;
+                        self.currentMap = self.maps['home'];
+                        self.currentPlayer = new Player();
+                        self.currentPlayer.x = 50;
+                        self.currentPlayer.y = 50;
                         self.setState(STATE_PLAY);
                     }
 
@@ -224,26 +238,27 @@ class Game {
     }
 
     drawMap() {
-        if (this.state != STATE_PLAY) {
+        if (this.state != STATE_PLAY || this.currentMap === null) {
             return;
-        }
+        }        
 
-        let gameMap = this.gameMap;
+        let map = this.currentMap;
+        let layers = map.layers;
         
-        this.map.removeAllChildren();
+        this.containerMap.removeAllChildren();
 
-        if (gameMap.base !== undefined && gameMap.base.length > 0) {
+        if (layers.base !== undefined && layers.base.length > 0) {
             let totalTilesX = this.width / this.tileSize;
             let totalTilesY = this.height / this.tileSize;
 
-            let drawTotalTilesX = totalTilesX + 2;
-            let drawTotalTilesY = totalTilesY + 2;
+            let drawTotalTilesX = totalTilesX;
+            let drawTotalTilesY = totalTilesY;
 
             let centerX = Math.floor(totalTilesX / 2);
             let centerY = Math.floor(totalTilesY / 2);
 
-            let drawOffsetX = centerX - this.player.x;
-            let drawOffsetY = centerY - this.player.y;
+            let drawOffsetX = centerX - this.currentPlayer.x;
+            let drawOffsetY = centerY - this.currentPlayer.y;
 
             let tile = new createjs.Sprite(this.tileset);
 
@@ -254,9 +269,9 @@ class Game {
                     let alterX = x - drawOffsetX;
                     let alterY = y - drawOffsetY;
 
-                    if ((alterX >= 0 && alterX < this.width && alterX < this.gameMap.width) && 
-                        (alterY >= 0 && alterY < this.height && alterY < this.gameMap.height)) {
-                        let aTileId = alterX + (alterY * this.gameMap.width);
+                    if ((alterX >= 0 && alterX < this.width && alterX < map.width) && 
+                        (alterY >= 0 && alterY < this.height && alterY < map.height)) {
+                        let aTileId = alterX + (alterY * map.width);
                         let posX = x * this.tileSize;
                         let posY = y * this.tileSize;
 
@@ -268,45 +283,66 @@ class Game {
                             aTile.x = posX;
                             aTile.y = posY;
 
-                            aTile.gotoAndStop(this.gameMap.base[aTileId] - 1);
+                            aTile.gotoAndStop(layers.base[aTileId] - 1);
 
-                            this.map.addChild(aTile);
+                            this.containerMap.addChild(aTile);
+                            
                             tileTotal++;
                         }
 
-                        if (this.gameMap.base[aTileId] != undefined && this.gameMap.fringe[aTileId] != 0) {
+                        if (layers.base[aTileId] != undefined && layers.fringe[aTileId] != 0) {
                             let aTile = tile.clone();
                             aTile.x = posX;
                             aTile.y = posY;
 
-                            aTile.gotoAndStop(this.gameMap.fringe[aTileId] - 1);
+                            aTile.gotoAndStop(layers.fringe[aTileId] - 1);
 
-                            this.map.addChild(aTile);
+                            this.containerMap.addChild(aTile);
                             tileTotal++;
+                        }
+
+                        if (this.debugContainer.visible) {
+                            var text = new createjs.Text(`${x}x${y}\n${alterX}x${alterY}`, "10px Courier New", "#000");
+                            text.x = posX + 1;
+                            text.y = posY + 1;
+                            this.containerMap.addChild(text);
+                        }
+
+                        if (this.debugContainer.visible && map.triggers[aTileId] !== undefined) {
+                            var text = new createjs.Text('T', "40px Arial", "#F0F");
+                            text.x = posX;
+                            text.y = posY;
+                            this.containerMap.addChild(text);
                         }
                     }
 
                     if (x == centerX && y == centerY) {
-                        if (this.playerIcon.children.length === 0) {
-                            this.playerIcon.addChild(this.player.image);
+                        if (this.containerPlayer.children.length === 0) {
+                            this.containerPlayer.addChild(this.currentPlayer.image);
                         }
 
-                        this.player.image.x = x * this.tileSize;
-                        this.player.image.y = y * this.tileSize;
+                        this.currentPlayer.image.x = x * this.tileSize;
+                        this.currentPlayer.image.y = y * this.tileSize;
                     }
                 }            
             }
 
-            console.log(`${tileTotal} rendered!`);
+            if (this.debugContainer.visible) {
+                let newDebugMsg = `TILES(${tileTotal})`;
+                if (this.oldDebugMsg !== newDebugMsg) {
+                    this.oldDebugMsg = newDebugMsg;
+                    console.log(newDebugMsg);
+                }
+            }
         }
     }
 
     drawInterface() {
-        this.hpValue.innerText = this.player.health;
-        this.hpTotal.innerText = this.player.totalHealth;
+        this.hpValue.innerText = this.currentPlayer.health;
+        this.hpTotal.innerText = this.currentPlayer.totalHealth;
 
-        this.manaValue.innerText = this.player.magic;
-        this.manaTotal.innerText = this.player.totalMagic;
+        this.manaValue.innerText = this.currentPlayer.magic;
+        this.manaTotal.innerText = this.currentPlayer.totalMagic;
     }
 
     showMessage(msg) {
@@ -317,19 +353,46 @@ class Game {
     }
 
     movePlayer(x, y) {
-        if (this.player.x + x >= 0 && this.player.x + x < this.gameMap.width) {
-            this.player.x += x;
+        let newX = this.currentPlayer.x + x;
+        let newY = this.currentPlayer.y + y;
+        let realId = newX + newY * this.currentMap.width;
+
+        if (this.currentMap.triggers[realId] !== undefined) {
+            eval(this.currentMap.triggers[realId]);
+        }        
+
+        if (this.currentMap.layers.fringe[realId] != 0) {
+            return;
+        }
+
+        if (this.currentPlayer.x + x >= 0 && this.currentPlayer.x + x < this.currentMap.width) {
+            this.currentPlayer.x += x;
         }    
 
-        if (this.player.y + y >= 0 && this.player.y + y < this.gameMap.height) {
-            this.player.y += y;
+        if (this.currentPlayer.y + y >= 0 && this.currentPlayer.y + y < this.currentMap.height) {
+            this.currentPlayer.y += y;
         }
 
         this.draw();
     }
 
+    toggleInventoryView() {
+        console.log('this would\'ve triggered the inventory screen...');
+    }
+
     toggleDebugView() {
         this.debugContainer.visible = !this.debugContainer.visible;
+        this.draw();
+    }
+
+    handleTrigger(triggerName) {
+        switch(triggerName) {
+            default: {
+                if (this.debugContainer.visible) {
+                    console.log(`TRIGGER(${triggerName})`);
+                }
+            }
+        }
     }
 
     handleKeyboard(keyEvent) {
@@ -338,6 +401,7 @@ class Game {
         }
 
         switch(keyEvent.keyCode) {
+            case 38:
             case 87:
             {
                 // this.showMessage(`${this.player.name} walks North`);
@@ -345,6 +409,7 @@ class Game {
             }
             break;
 
+            case 37:
             case 65:
             {
                 // this.showMessage(`${this.player.name} walks West`);
@@ -352,6 +417,7 @@ class Game {
             }
             break;
 
+            case 40:
             case 83:
             {
                 // this.showMessage(`${this.player.name} walks South`);
@@ -359,10 +425,17 @@ class Game {
             }
             break;
 
+            case 39:
             case 68:
             {
                 // this.showMessage(`${this.player.name} walks East`);
                 this.movePlayer(1, 0);
+            }
+            break;
+
+            case 73:
+            {
+                this.toggleInventoryView();
             }
             break;
 
@@ -374,7 +447,9 @@ class Game {
 
             default:
             {
-                console.log(keyEvent.keyCode);
+                if (this.debugContainer.visible) {
+                    console.log(`KEYBOARD(${keyEvent.keyCode})`);
+                }
             }
             break;
         }
@@ -401,12 +476,13 @@ class Game {
         if (type == 'json') {
             let jsonData = fileLoadEvent.result;
             if (jsonData.type !== undefined && jsonData.type === 'map') {
-                this.gameMap.width = jsonData.width;
-                this.gameMap.height = jsonData.height;
-                this.gameMap.base = jsonData.layers[0].data;
-                this.gameMap.fringe = jsonData.layers[1].data;
-                // TODO: more layers!
+                let loadedMap = Map.ParseJson(jsonData);
+                this.maps[loadedMap.name] = loadedMap;
             }
         }
+    }
+
+    randomNumber(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 }

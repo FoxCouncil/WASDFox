@@ -21,7 +21,7 @@ gulp.task('assets-maps', function() {
 });
 
 gulp.task('scripts', function() {
-  return gulp.src(['src/js/player.js', 'src/js/game.js', 'src/js/main.js'])
+  return gulp.src(['src/js/stats.js', 'src/js/map.js', 'src/js/player.js', 'src/js/game.js', 'src/js/main.js'])
     .pipe(concat('game.js'))
     .pipe(gulp.dest('bin/'));
 });

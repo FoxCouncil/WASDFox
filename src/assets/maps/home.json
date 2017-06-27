@@ -21,9 +21,49 @@
          "width":100,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"index",
+         "name":"Tiggers",
+         "objects":[
+                {
+                 "height":64,
+                 "id":4,
+                 "name":"General Store",
+                 "rotation":0,
+                 "type":"triggerbox",
+                 "visible":true,
+                 "width":64,
+                 "x":1664,
+                 "y":1408
+                }, 
+                {
+                 "height":32,
+                 "id":8,
+                 "name":"Foxes",
+                 "rotation":0,
+                 "type":"triggerbox",
+                 "visible":true,
+                 "width":32,
+                 "x":1664,
+                 "y":1376
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
         }],
- "nextobjectid":1,
+ "nextobjectid":12,
  "orientation":"orthogonal",
+ "properties":
+    {
+     "map_name":"home"
+    },
+ "propertytypes":
+    {
+     "map_name":"string"
+    },
  "renderorder":"right-down",
  "tileheight":32,
  "tilesets":[

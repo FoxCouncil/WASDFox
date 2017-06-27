@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="2017.05.26" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="32" tileheight="32" nextobjectid="1">
+<map version="2017.05.26" orientation="orthogonal" renderorder="right-down" width="100" height="100" tilewidth="32" tileheight="32" nextobjectid="12">
+ <properties>
+  <property name="map_name" value="home"/>
+ </properties>
  <tileset firstgid="1" source="tilesheet.tsx"/>
  <layer name="Base" width="100" height="100">
   <data encoding="csv">
@@ -209,4 +212,8 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
+ <objectgroup draworder="index" name="Tiggers">
+  <object id="4" name="General Store" type="triggerbox" x="1664" y="1408" width="64" height="64"/>
+  <object id="8" name="Foxes" type="triggerbox" x="1664" y="1376" width="32" height="32"/>
+ </objectgroup>
 </map>
