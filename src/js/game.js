@@ -1,6 +1,8 @@
 const STATE_UNINITIALIZED = Symbol('STATE_UNINITIALIZED');
 const STATE_MAINMENU = Symbol('STATE_MAINMENU');
 const STATE_PLAY = Symbol('STATE_PLAY');
+const STATE_LOADINGMAP = Symbol('STATE_LOADINGMAP');
+const STATE_SHOWINGMAP = Symbol('STATE_SHOWINGMAP');
 
 class Game {
     constructor(tileSize=32, frameRate=60, canvasId='gs') {
@@ -85,15 +87,47 @@ class Game {
     tick() {
         this.statsView.begin();
 
-        /*for (var idx = 0; idx < 1000; idx++) {
-            let rndTile = this.containerMap.getChildAt(this.randomNumber(0, this.containerMap.numChildren));
-            if (rndTile !== undefined) {
-                rndTile.alpha -= 0.33;
-                rndTile.rotation += 45;
-                if (rndTile.alpha < 0) {
-                    rndTile.alpha = 1;
+        if (this.state === STATE_LOADINGMAP) {
+            if (this.containerMap.numChildren > 0) {     
+                for (var idx = 0; idx < 250; idx++) {
+                    let rndTile = this.containerMap.getChildAt(this.randomNumber(0, this.containerMap.numChildren));
+                    if (rndTile !== undefined) {
+                        rndTile.alpha -= 0.33;
+                        rndTile.rotation += 45;
+                        if (rndTile.alpha < 0) {
+                            this.containerMap.removeChild(rndTile);
+                        }
+                    }         
                 }
-            }         
+            } else {
+                this.currentMap = this.maps[this.mapToLoad];
+                delete this.mapToLoad;
+                this.mapToShowIds = Array.from(Array(this.currentMap.width * this.currentMap.height).keys());
+                this.drawMap();
+                this.setState(STATE_SHOWINGMAP);
+            }
+        } else if (this.state == STATE_SHOWINGMAP) {
+            if (this.mapToShowIds.length > 0) {
+                for (var idx = 0; idx < 2000; idx++) {
+                    let rndId = this.randomNumber(0, this.mapToShowIds.length);
+                    let rndTileId = this.mapToShowIds[rndId];
+                    let rndTile = this.containerMap.getChildAt(rndTileId);
+                    if (rndTile !== undefined) {
+                        rndTile.alpha += 0.33;
+                        rndTile.rotation -= 45;
+                        if (rndTile.alpha >= 1) {
+                            rndTile.rotation = 0;
+                            rndTile.alpha = 1;
+                            this.mapToShowIds.splice(rndId, 1);
+                        }
+                    }
+                }
+            } else {
+                delete this.mapToShowIds;
+                this.setState(STATE_PLAY);
+            } 
+        }
+        /*    
         }*/
 
         this.stage.update();
@@ -115,6 +149,8 @@ class Game {
         if (this.state === newState) {
             return;
         }
+
+        this.debugMessage('STATE', this.state.toString(), ` CHANGED TO STATE(${newState.toString()})`);
 
         this.state = newState;
 
@@ -198,8 +234,6 @@ class Game {
                 this.viewNewPlayer.classList.add('hidden');
                 this.viewGameBar.classList.remove('hidden');
 
-                this.showMessage('You awake, dazed and confused.');
-
                 this.draw();
             }
             break;
@@ -238,7 +272,7 @@ class Game {
     }
 
     drawMap() {
-        if (this.state != STATE_PLAY || this.currentMap === null) {
+        if (this.currentMap === null || this.currentMap === undefined) {
             return;
         }        
 
@@ -285,6 +319,10 @@ class Game {
 
                             aTile.gotoAndStop(layers.base[aTileId] - 1);
 
+                            if (this.state == STATE_LOADINGMAP) {
+                                aTile.alpha = 0;
+                            }
+
                             this.containerMap.addChild(aTile);
                             
                             tileTotal++;
@@ -297,6 +335,10 @@ class Game {
 
                             aTile.gotoAndStop(layers.fringe[aTileId] - 1);
 
+                            if (this.state == STATE_LOADINGMAP) {
+                                aTile.alpha = 0;
+                            }
+
                             this.containerMap.addChild(aTile);
                             tileTotal++;
                         }
@@ -305,6 +347,11 @@ class Game {
                             var text = new createjs.Text(`${x}x${y}\n${alterX}x${alterY}`, "10px Courier New", "#000");
                             text.x = posX + 1;
                             text.y = posY + 1;
+
+                            if (this.state == STATE_LOADINGMAP) {
+                                text.alpha = 0;
+                            }
+
                             this.containerMap.addChild(text);
                         }
 
@@ -312,6 +359,11 @@ class Game {
                             var text = new createjs.Text('T', "40px Arial", "#F0F");
                             text.x = posX;
                             text.y = posY;
+
+                            if (this.state == STATE_LOADINGMAP) {
+                                text.alpha = 0;
+                            }
+
                             this.containerMap.addChild(text);
                         }
                     }
@@ -327,13 +379,7 @@ class Game {
                 }            
             }
 
-            if (this.debugContainer.visible) {
-                let newDebugMsg = `TILES(${tileTotal})`;
-                if (this.oldDebugMsg !== newDebugMsg) {
-                    this.oldDebugMsg = newDebugMsg;
-                    console.log(newDebugMsg);
-                }
-            }
+            this.debugMessage('TILES', tileTotal);
         }
     }
 
@@ -345,11 +391,27 @@ class Game {
         this.manaTotal.innerText = this.currentPlayer.totalMagic;
     }
 
+    clearMessages() {
+        while (this.statusBar.firstChild) {
+            this.statusBar.removeChild(this.statusBar.firstChild);
+        }
+    }
+
     showMessage(msg) {
         let newMsg = document.createElement('div');
         newMsg.innerText = msg;
         this.statusBar.appendChild(newMsg);
         this.statusBar.scrollTop = this.statusBar.scrollHeight;
+    }
+
+    loadMap(name) {
+       if (this.maps[name] === undefined) {
+           throw `MAP(${name}) ERROR: 404 Map Not Found!`;
+       }
+
+       this.mapToLoad = name;       
+
+       this.setState(STATE_LOADINGMAP);
     }
 
     movePlayer(x, y) {
@@ -484,5 +546,15 @@ class Game {
 
     randomNumber(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    debugMessage(who, what, extra='') {
+        if (this.debugContainer.visible) {
+            let newDebugMsg = `${who}(${what})${extra}`;
+            if (this.oldDebugMsg !== newDebugMsg) {
+                this.oldDebugMsg = newDebugMsg;
+                console.info(newDebugMsg);
+            }
+        }
     }
 }
