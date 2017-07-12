@@ -1,36 +1,23 @@
-const STATE_UNINITIALIZED = Symbol('STATE_UNINITIALIZED');
-const STATE_MAINMENU = Symbol('STATE_MAINMENU');
-const STATE_PLAY = Symbol('STATE_PLAY');
-const STATE_LOADINGMAP = Symbol('STATE_LOADINGMAP');
-const STATE_SHOWINGMAP = Symbol('STATE_SHOWINGMAP');
-
 class Game {
-    constructor(tileSize=32, frameRate=60, canvasId='gs') {
+    constructor(tileSize = 32, frameRate = 60, canvasId = VIEW_CANVAS_TAGNAME) {
         this.tileSize = tileSize;
         this.frameRate = frameRate;
         this.canvasId = canvasId;
 
+        this.gui = {};
         this.maps = [];
+        this.messages = [];
 
         this.currentMap = null;
-        this.currentPlayer = null;        
+        this.currentPlayer = null;
 
         this.containerMap = new createjs.Container();
         this.containerPlayer = new createjs.Container();
 
-        // Views
-        this.viewNewPlayer = document.getElementById('newplayer');
-        this.viewNewPlayerStats = document.getElementById('newplayer-statlist');
-
-        this.viewGameBar = document.getElementById('gamebar');
-
-        this.hpValue = document.getElementById('value-hp');
-        this.hpTotal = document.getElementById('value-total-hp');
-
-        this.manaValue = document.getElementById('value-mana');
-        this.manaTotal = document.getElementById('value-total-mana');
-
-        this.statusBar = document.getElementById('gamebar-right');
+        this.viewDebug = document.createElement('div');
+        this.viewDebug.setAttribute('id', VIEW_DEBUG_TAGNAME);
+        this.viewGui = document.createElement('div');
+        this.viewGui.setAttribute('id', VIEW_GUI_TAGNAME);
 
         this.statsView = new Stats();
 
@@ -39,11 +26,14 @@ class Game {
 
     initialize() {
         if (this.state == STATE_UNINITIALIZED) {
-            
-            document.body.appendChild( this.statsView.dom );
+            this.viewDebug.classList.add('hidden');
+            this.viewDebug.appendChild(this.statsView.dom);
+            document.body.appendChild(this.viewDebug);
+
+            document.body.appendChild(this.viewGui);
 
             this.loadTileset('art/tileset.png');
-            
+
             this.stage = new createjs.Stage(this.canvasId);
             this.stage.addChild(this.containerMap);
             this.stage.addChild(this.containerPlayer);
@@ -61,10 +51,10 @@ class Game {
             this.queue.installPlugin(createjs.JSON);
             this.queue.on('fileload', this.preloaderFileReady, this);
             this.queue.on('complete', this.preloaderComplete, this);
-            
+
             this.queue.loadFile('maps/home.json');
         } else {
-            console.error('Game already initialized!');
+            console.error('GAME() ERROR: Game object already initialized!');
         }
     }
 
@@ -88,7 +78,7 @@ class Game {
         this.statsView.begin();
 
         if (this.state === STATE_LOADINGMAP) {
-            if (this.containerMap.numChildren > 0) {     
+            if (this.containerMap.numChildren > 0) {
                 for (var idx = 0; idx < 250; idx++) {
                     let rndTile = this.containerMap.getChildAt(this.randomNumber(0, this.containerMap.numChildren));
                     if (rndTile !== undefined) {
@@ -97,18 +87,18 @@ class Game {
                         if (rndTile.alpha < 0) {
                             this.containerMap.removeChild(rndTile);
                         }
-                    }         
+                    }
                 }
             } else {
                 this.currentMap = this.maps[this.mapToLoad];
                 delete this.mapToLoad;
-                this.mapToShowIds = Array.from(Array(this.currentMap.width * this.currentMap.height).keys());
                 this.drawMap();
+                this.mapToShowIds = Array.from(Array(this.containerMap.numChildren).keys());
                 this.setState(STATE_SHOWINGMAP);
             }
         } else if (this.state == STATE_SHOWINGMAP) {
             if (this.mapToShowIds.length > 0) {
-                for (var idx = 0; idx < 2000; idx++) {
+                for (var idx = 0; idx < 250; idx++) {
                     let rndId = this.randomNumber(0, this.mapToShowIds.length);
                     let rndTileId = this.mapToShowIds[rndId];
                     let rndTile = this.containerMap.getChildAt(rndTileId);
@@ -125,12 +115,16 @@ class Game {
             } else {
                 delete this.mapToShowIds;
                 this.setState(STATE_PLAY);
-            } 
+            }
         }
-        /*    
-        }*/
 
         this.stage.update();
+
+        if (this.gui !== undefined && this.gui.needsUpdate) {
+            this.gui.update();
+            this.gui.needsUpdate = false;
+        }
+
         this.statsView.end();
     }
 
@@ -145,7 +139,7 @@ class Game {
         if (typeof newState !== 'symbol' || newState === STATE_UNINITIALIZED) {
             throw 'InvalidStateException';
         }
-        
+
         if (this.state === newState) {
             return;
         }
@@ -153,100 +147,82 @@ class Game {
         this.debugMessage('STATE', this.state.toString(), ` CHANGED TO STATE(${newState.toString()})`);
 
         this.state = newState;
+        let self = this;
 
         switch (newState) {
-            case STATE_MAINMENU: {
-                while (this.viewNewPlayerStats.hasChildNodes()) {
-                    this.viewNewPlayerStats.removeChild(this.viewNewPlayerStats.lastChild);
-                }
-
-                for (var idx = 0; idx < Player.StatNames.length; idx++) {
-                    let statName = Player.StatNames[idx];
-
-                    let statLabel = document.createElement('label');
-                    let statSpan = document.createElement('span');
-                    statSpan.innerText = statName;
-                    statLabel.appendChild(statSpan);
-                    let statInput = document.createElement('input');
-                    statInput.setAttribute('class', 'player-stat-input');
-                    statInput.setAttribute('type', 'number');
-                    statInput.setAttribute('name', statName.toLowerCase());
-                    statInput.setAttribute('value', '5');
-                    statInput.setAttribute('min', '0');
-                    statLabel.appendChild(statInput);    
-                    this.viewNewPlayerStats.appendChild(statLabel);                
-                }
-
-                const statsCalculator = function(e) {
-                    let statInputs = document.getElementsByClassName('player-stat-input');
-                    let totalPoints = statInputs.length * 5;
-
-                    let lastStatInput;
-                    for (var idx = 0; idx < statInputs.length; idx++) {
-                        lastStatInput = statInputs[idx];
-                        if (lastStatInput.valueAsNumber < 0) {
-                            lastStatInput.value = 0;
+            case STATE_MAINMENU:
+                {
+                    this.loadGui('newgame').then(function(totalbindings) {
+                        for (var i = 0; i < Player.Stats.length; i++) {
+                            let statName = Player.Stats[i];
+                            let statLabel = document.createElement('label');
+                            let statSpan = document.createElement('span');
+                            statSpan.innerText = statName;
+                            statLabel.appendChild(statSpan);
+                            let statInput = document.createElement('input');
+                            statInput.setAttribute('type', 'number');
+                            statInput.setAttribute('max', '10');
+                            statInput.setAttribute('value', '5');
+                            statInput.setAttribute('min', '1');
+                            statLabel.appendChild(statInput);
+                            self.gui.bindings[statName.toLowerCase()] = statInput;
+                            self.gui.bindings.stats.appendChild(statLabel);
                         }
 
-                        if (totalPoints > 0) {
-                            totalPoints -= lastStatInput.valueAsNumber;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    if (totalPoints < 0) {
-                        let fuck = Math.abs(totalPoints);
-
-                        lastStatInput.value -= fuck;
-                        totalPoints += fuck;
-                    }
-
-                    document.getElementsByName('pointsleft')[0].value = totalPoints;
-                };
-
-                let statInputs = document.getElementsByClassName('player-stat-input');
-
-                for (var idx = 0; idx < statInputs.length; idx++) {
-                    var statInput = statInputs[idx];
-                    statInput.addEventListener('input', statsCalculator);                    
-                }
-
-                this.viewNewPlayer.classList.remove('hidden');
-                this.viewGameBar.classList.add('hidden');
-                if (document.getElementsByName('startgamebutton')[0].onclick == null) {
-                    var self = this;
-                    document.getElementsByName('startgamebutton')[0].onclick = function() {
-                        self.currentMap = self.maps['home'];
                         self.currentPlayer = new Player();
-                        self.currentPlayer.x = 50;
-                        self.currentPlayer.y = 50;
-                        self.setState(STATE_PLAY);
-                    }
+
+                        self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
+
+                        for (let k in self.currentPlayer.stats) {
+                            const callbackFunc = function(e) {
+                                if (e.target.value == self.currentPlayer.stats[k]) { return; }
+                                self.currentPlayer.setStat(k, e.target.value > self.currentPlayer.stats[k]);
+                                self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
+                                for (let k in self.currentPlayer.stats) {
+                                    self.gui.bindings[k].value = self.currentPlayer.stats[k];
+                                }
+                            };
+                            self.gui.bindings[k].addEventListener('keyup', callbackFunc);
+                            self.gui.bindings[k].addEventListener('keydown', callbackFunc);
+                            self.gui.bindings[k].addEventListener('mouseup', callbackFunc);
+                        }
+
+                        self.gui.bindings.button_start.addEventListener('click', function() {
+                            self.currentMap = self.maps['home'];
+                            self.setState(STATE_PLAY);
+                        });
+                    });
 
                     // DEV ONLY
-                    document.getElementsByName('startgamebutton')[0].click();
+                    // self.gui.bindings.button_start.click();
                 }
-            }
-            break;
+                break;
 
-            case STATE_PLAY: {
-                this.viewNewPlayer.classList.add('hidden');
-                this.viewGameBar.classList.remove('hidden');
-
-                this.draw();
-            }
-            break;
+            case STATE_PLAY:
+                {
+                    this.loadGui('gamebar').then(function(totalbindings) {
+                        self.gui.update = function() {
+                            let binds = self.gui.bindings;
+                            binds.value_hp.innerText = self.currentPlayer.health;
+                            binds.value_total_hp.innerText = self.currentPlayer.totalHealth;
+                            
+                            binds.value_mana.innerText = self.currentPlayer.magic;
+                            binds.value_total_mana.innerText = self.currentPlayer.totalMagic;
+                        };
+                        self.draw();
+                    });
+                }
+                break;
         }
     }
 
     draw() {
         this.drawDebugView();
-        
+
         if (this.state != STATE_PLAY) {
             return;
         }
-        
+
         this.drawMap();
         this.drawInterface();
     }
@@ -259,7 +235,7 @@ class Game {
         } else {
             this.debugContainer.removeAllChildren();
         }
-        
+
         let lineX = new createjs.Shape();
         lineX.name = 'linex';
         lineX.graphics.beginStroke('#F00').drawRect(this.width / 2, 0, 1, this.height);
@@ -268,17 +244,17 @@ class Game {
         let lineY = new createjs.Shape();
         lineY.name = 'liney';
         lineY.graphics.beginStroke('#0F0').drawRect(0, this.height / 2, this.width, 1);
-        this.debugContainer.addChild(lineY);        
+        this.debugContainer.addChild(lineY);
     }
 
     drawMap() {
         if (this.currentMap === null || this.currentMap === undefined) {
             return;
-        }        
+        }
 
         let map = this.currentMap;
         let layers = map.layers;
-        
+
         this.containerMap.removeAllChildren();
 
         if (layers.base !== undefined && layers.base.length > 0) {
@@ -303,7 +279,7 @@ class Game {
                     let alterX = x - drawOffsetX;
                     let alterY = y - drawOffsetY;
 
-                    if ((alterX >= 0 && alterX < this.width && alterX < map.width) && 
+                    if ((alterX >= 0 && alterX < this.width && alterX < map.width) &&
                         (alterY >= 0 && alterY < this.height && alterY < map.height)) {
                         let aTileId = alterX + (alterY * map.width);
                         let posX = x * this.tileSize;
@@ -324,7 +300,7 @@ class Game {
                             }
 
                             this.containerMap.addChild(aTile);
-                            
+
                             tileTotal++;
                         }
 
@@ -376,7 +352,7 @@ class Game {
                         this.currentPlayer.image.x = x * this.tileSize;
                         this.currentPlayer.image.y = y * this.tileSize;
                     }
-                }            
+                }
             }
 
             this.debugMessage('TILES', tileTotal);
@@ -384,11 +360,9 @@ class Game {
     }
 
     drawInterface() {
-        this.hpValue.innerText = this.currentPlayer.health;
-        this.hpTotal.innerText = this.currentPlayer.totalHealth;
-
-        this.manaValue.innerText = this.currentPlayer.magic;
-        this.manaTotal.innerText = this.currentPlayer.totalMagic;
+        if (this.gui !== undefined && typeof(this.gui.update) === 'function') {
+            this.gui.update();
+        }
     }
 
     clearMessages() {
@@ -405,13 +379,13 @@ class Game {
     }
 
     loadMap(name) {
-       if (this.maps[name] === undefined) {
-           throw `MAP(${name}) ERROR: 404 Map Not Found!`;
-       }
+        if (this.maps[name] === undefined) {
+            throw `MAP(${name}) ERROR: 404 Map Not Found!`;
+        }
 
-       this.mapToLoad = name;       
+        this.mapToLoad = name;
 
-       this.setState(STATE_LOADINGMAP);
+        this.setState(STATE_LOADINGMAP);
     }
 
     movePlayer(x, y) {
@@ -421,7 +395,7 @@ class Game {
 
         if (this.currentMap.triggers[realId] !== undefined) {
             eval(this.currentMap.triggers[realId]);
-        }        
+        }
 
         if (this.currentMap.layers.fringe[realId] != 0) {
             return;
@@ -429,7 +403,7 @@ class Game {
 
         if (this.currentPlayer.x + x >= 0 && this.currentPlayer.x + x < this.currentMap.width) {
             this.currentPlayer.x += x;
-        }    
+        }
 
         if (this.currentPlayer.y + y >= 0 && this.currentPlayer.y + y < this.currentMap.height) {
             this.currentPlayer.y += y;
@@ -444,11 +418,16 @@ class Game {
 
     toggleDebugView() {
         this.debugContainer.visible = !this.debugContainer.visible;
+        if (this.debugContainer.visible) {
+            this.viewDebug.classList.remove('hidden');
+        } else {
+            this.viewDebug.classList.add('hidden');
+        }
         this.draw();
     }
 
     handleTrigger(triggerName) {
-        switch(triggerName) {
+        switch (triggerName) {
             default: {
                 if (this.debugContainer.visible) {
                     console.log(`TRIGGER(${triggerName})`);
@@ -462,59 +441,85 @@ class Game {
             return;
         }
 
-        switch(keyEvent.keyCode) {
+        switch (keyEvent.keyCode) {
             case 38:
             case 87:
-            {
-                // this.showMessage(`${this.player.name} walks North`);
-                this.movePlayer(0, -1);
-            }
-            break;
+                {
+                    // this.showMessage(`${this.player.name} walks North`);
+                    this.movePlayer(0, -1);
+                }
+                break;
 
             case 37:
             case 65:
-            {
-                // this.showMessage(`${this.player.name} walks West`);
-                this.movePlayer(-1, 0);
-            }
-            break;
+                {
+                    // this.showMessage(`${this.player.name} walks West`);
+                    this.movePlayer(-1, 0);
+                }
+                break;
 
             case 40:
             case 83:
-            {
-                // this.showMessage(`${this.player.name} walks South`);
-                this.movePlayer(0, 1);
-            }
-            break;
+                {
+                    // this.showMessage(`${this.player.name} walks South`);
+                    this.movePlayer(0, 1);
+                }
+                break;
 
             case 39:
             case 68:
-            {
-                // this.showMessage(`${this.player.name} walks East`);
-                this.movePlayer(1, 0);
-            }
-            break;
+                {
+                    // this.showMessage(`${this.player.name} walks East`);
+                    this.movePlayer(1, 0);
+                }
+                break;
 
             case 73:
-            {
-                this.toggleInventoryView();
-            }
-            break;
+                {
+                    this.toggleInventoryView();
+                }
+                break;
 
             case 187:
-            {
-                this.toggleDebugView();
-            }
-            break;
+                {
+                    this.toggleDebugView();
+                }
+                break;
 
             default:
-            {
-                if (this.debugContainer.visible) {
-                    console.log(`KEYBOARD(${keyEvent.keyCode})`);
+                {
+                    if (this.debugContainer.visible) {
+                        console.log(`KEYBOARD(${keyEvent.keyCode})`);
+                    }
                 }
-            }
-            break;
+                break;
         }
+    }
+
+    loadGui(name) {
+        let self = this;
+        return fetch(`${name}.html`).then(function(http) {
+            return http.text();
+        }).then(function(html) {
+            self.gui = Object.assign({
+                name: name,
+                fragment: document.createRange().createContextualFragment(html),
+                tick: noop(),
+                update: noop(),
+                needsUpdate: false,
+                bindings: {}
+            });
+            let ids = self.gui.fragment.querySelectorAll('*[id]:not([id=""])');
+            for (let i = 0; i < ids.length; i++) {
+                let node = ids[i];
+                self.gui.bindings[node.id.replace('-', '_')] = node;
+            }
+            self.viewGui.empty();
+            self.viewGui.appendChild(self.gui.fragment);
+            return ids.length;
+        }).catch(function(err) {
+            throw err;
+        });
     }
 
     loadTileset(tilesetUri) {
@@ -544,11 +549,7 @@ class Game {
         }
     }
 
-    randomNumber(min, max) {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
-    }
-
-    debugMessage(who, what, extra='') {
+    debugMessage(who, what, extra = '') {
         if (this.debugContainer.visible) {
             let newDebugMsg = `${who}(${what})${extra}`;
             if (this.oldDebugMsg !== newDebugMsg) {

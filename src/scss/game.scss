@@ -124,7 +124,7 @@ canvas {
     }
 }
 
-#gamebar {
+.gamebar {
     -webkit-user-select: none;  /* Chrome all / Safari all */
     -moz-user-select: none;     /* Firefox all */
     -ms-user-select: none;      /* IE 10+ */
@@ -142,10 +142,10 @@ canvas {
         box-sizing: border-box;         /* Opera/IE 8+ */
     }
 
-    #gamebar-left {
+    .values {
         float: left;
 
-        width: 10vw;
+        width: 15vw;
         padding-left: 1rem;
 
         .valuetitle {
@@ -161,10 +161,10 @@ canvas {
         }
     }
 
-    #gamebar-right {
+    .console {
         float: right;
 
-        width: 90vw;
+        width: 85vw;
         height: 100%;
 
         font-family: 'Indie Flower', cursive;

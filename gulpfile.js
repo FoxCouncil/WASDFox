@@ -21,7 +21,7 @@ gulp.task('assets-maps', function() {
 });
 
 gulp.task('scripts', function() {
-  return gulp.src(['src/js/stats.js', 'src/js/map.js', 'src/js/player.js', 'src/js/game.js', 'src/js/main.js'])
+  return gulp.src(['src/js/utils.js', 'src/js/stats.js', 'src/js/map.js', 'src/js/player.js', 'src/js/game.js', 'src/js/main.js'])
     .pipe(concat('game.js'))
     .pipe(gulp.dest('bin/'));
 });
@@ -33,7 +33,7 @@ gulp.task('styles', function () {
 });
 
 gulp.task('html', function() {
-    return gulp.src('src/index.html').pipe(gulp.dest('bin'));
+    return gulp.src('src/*.html').pipe(gulp.dest('bin'));
 })
 
 gulp.task('clean', function() {

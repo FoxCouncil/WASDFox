@@ -12,46 +12,7 @@
     </head>
     <body>
         <canvas id="gs"></canvas>
-        <div id="newplayer" class="window hidden">
-            <h1>Murder Contract</h1>
-            <label>
-                <span>Name</span> 
-                <input type="text" name="name" value="Fox">
-            </label>
-            <label>
-                <span>Gender</span>
-                <input type="text" name="name" value="male">
-            </label>
-            <div id="newplayer-statlist"></div>
-            <label>
-                <span>Points Left</span>
-                <input type="number" name="pointsleft" value="0" min="0" readonly>
-            </label>
-            <input type="button" name="startgamebutton" value="Sign Contract In Blood">
-        </div>
-        <div id="gamebar" class="hidden">
-            <div id="gamebar-left">
-                <table>
-                    <tr>
-                        <td class="valuetitle" style="text-align: right">HP:</td>
-                        <td>
-                            <span id="value-hp" class="mainvalue">0</span><!--
-                         --><span class="valueseperator">/</span><!--
-                         --><span id="value-total-hp" class="totalvalue">0</span>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td class="valuetitle" style="text-align: right">Mana:</td>
-                        <td>
-                            <span id="value-mana" class="mainvalue">0</span><!--
-                         --><span class="valueseperator">/</span><!--
-                         --><span id="value-total-mana" class="totalvalue">0</span>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-            <div id="gamebar-right"></div>
-        </div>
+        <div id="debug-view"></div>
         <script src="https://code.createjs.com/createjs-2015.11.26.min.js"></script>
         <script src="game.js"></script>
     </body>
