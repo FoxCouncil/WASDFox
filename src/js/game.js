@@ -77,46 +77,7 @@ class Game {
     tick() {
         this.statsView.begin();
 
-        if (this.state === STATE_LOADINGMAP) {
-            if (this.containerMap.numChildren > 0) {
-                for (var idx = 0; idx < 250; idx++) {
-                    let rndTile = this.containerMap.getChildAt(this.randomNumber(0, this.containerMap.numChildren));
-                    if (rndTile !== undefined) {
-                        rndTile.alpha -= 0.33;
-                        rndTile.rotation += 45;
-                        if (rndTile.alpha < 0) {
-                            this.containerMap.removeChild(rndTile);
-                        }
-                    }
-                }
-            } else {
-                this.currentMap = this.maps[this.mapToLoad];
-                delete this.mapToLoad;
-                this.drawMap();
-                this.mapToShowIds = Array.from(Array(this.containerMap.numChildren).keys());
-                this.setState(STATE_SHOWINGMAP);
-            }
-        } else if (this.state == STATE_SHOWINGMAP) {
-            if (this.mapToShowIds.length > 0) {
-                for (var idx = 0; idx < 250; idx++) {
-                    let rndId = this.randomNumber(0, this.mapToShowIds.length);
-                    let rndTileId = this.mapToShowIds[rndId];
-                    let rndTile = this.containerMap.getChildAt(rndTileId);
-                    if (rndTile !== undefined) {
-                        rndTile.alpha += 0.33;
-                        rndTile.rotation -= 45;
-                        if (rndTile.alpha >= 1) {
-                            rndTile.rotation = 0;
-                            rndTile.alpha = 1;
-                            this.mapToShowIds.splice(rndId, 1);
-                        }
-                    }
-                }
-            } else {
-                delete this.mapToShowIds;
-                this.setState(STATE_PLAY);
-            }
-        }
+        this.tickAnimations();
 
         this.stage.update();
 
@@ -126,6 +87,62 @@ class Game {
         }
 
         this.statsView.end();
+    }
+
+    tickAnimations() {
+        const tilesDivisorPerFrame = 15;
+        switch(this.state) {
+            case STATE_LOADINGMAP:
+            {
+                this.containerPlayer.visible = false;
+                let tilesToAnimate = Math.floor(this.totalDrawnTiles / tilesDivisorPerFrame);
+                if (this.containerMap.numChildren > 0) {
+                    for (var idx = 0; idx < tilesToAnimate; idx++) {
+                        let rndTile = this.containerMap.getChildAt(Utils.RandomNumber(0, this.containerMap.numChildren));
+                        if (rndTile !== undefined) {
+                            rndTile.alpha -= 0.33;
+                            rndTile.rotation += 45;
+                            if (rndTile.alpha < 0) {
+                                this.containerMap.removeChild(rndTile);
+                            }
+                        }
+                    }
+                } else {
+                    this.currentMap = this.maps[this.mapToLoad];
+                    delete this.mapToLoad;
+                    this.drawMap();
+                    this.mapToShowIds = Array.from(Array(this.containerMap.numChildren).keys());
+                    this.setState(STATE_SHOWINGMAP);
+                }
+            }
+            break;
+
+            case STATE_SHOWINGMAP:
+            {
+                let tilesToAnimate = Math.floor(this.totalDrawnTiles / tilesDivisorPerFrame);
+                if (this.mapToShowIds.length > 0) {
+                    for (var idx = 0; idx < tilesToAnimate; idx++) {
+                        let rndId = Utils.RandomNumber(0, this.mapToShowIds.length);
+                        let rndTileId = this.mapToShowIds[rndId];
+                        let rndTile = this.containerMap.getChildAt(rndTileId);
+                        if (rndTile !== undefined) {
+                            rndTile.alpha += 0.33;
+                            rndTile.rotation -= 45;
+                            if (rndTile.alpha >= 1) {
+                                rndTile.rotation = 0;
+                                rndTile.alpha = 1;
+                                this.mapToShowIds.splice(rndId, 1);
+                            }
+                        }
+                    }
+                } else {
+                    delete this.mapToShowIds;
+                    this.containerPlayer.visible = true;
+                    this.setState(STATE_PLAY);
+                }
+            }
+            break;
+        }
     }
 
     resize() {
@@ -150,84 +167,102 @@ class Game {
         let self = this;
 
         switch (newState) {
-            case STATE_MAINMENU:
-                {
-                    this.loadGui('newgame').then(function(totalbindings) {
-                        for (var i = 0; i < Player.Stats.length; i++) {
-                            let statName = Player.Stats[i];
-                            let statLabel = document.createElement('label');
-                            let statSpan = document.createElement('span');
-                            statSpan.innerText = statName;
-                            statLabel.appendChild(statSpan);
-                            let statInput = document.createElement('input');
-                            statInput.setAttribute('type', 'number');
-                            statInput.setAttribute('max', '10');
-                            statInput.setAttribute('value', '5');
-                            statInput.setAttribute('min', '1');
-                            statLabel.appendChild(statInput);
-                            self.gui.bindings[statName.toLowerCase()] = statInput;
-                            self.gui.bindings.stats.appendChild(statLabel);
-                        }
+            case STATE_NEWGAME:
+            {
+                this.setGameboardVisibility(false);
+                this.loadGui('newgame').then(function(totalbindings) {
+                    for (var i = 0; i < Player.Stats.length; i++) {
+                        let statName = Player.Stats[i];
+                        let statLabel = document.createElement('label');
+                        let statSpan = document.createElement('span');
+                        statSpan.innerText = statName;
+                        statLabel.appendChild(statSpan);
+                        let statInput = document.createElement('input');
+                        statInput.setAttribute('type', 'number');
+                        statInput.setAttribute('max', '10');
+                        statInput.setAttribute('value', '5');
+                        statInput.setAttribute('min', '1');
+                        statLabel.appendChild(statInput);
+                        self.gui.bindings[statName.toLowerCase()] = statInput;
+                        self.gui.bindings.stats.appendChild(statLabel);
+                    }
 
-                        self.currentPlayer = new Player();
+                    self.currentPlayer = new Player();
 
-                        self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
+                    self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
 
-                        for (let k in self.currentPlayer.stats) {
-                            const callbackFunc = function(e) {
-                                if (e.target.value == self.currentPlayer.stats[k]) { return; }
-                                self.currentPlayer.setStat(k, e.target.value > self.currentPlayer.stats[k]);
-                                self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
-                                for (let k in self.currentPlayer.stats) {
-                                    self.gui.bindings[k].value = self.currentPlayer.stats[k];
-                                }
-                            };
-                            self.gui.bindings[k].addEventListener('keyup', callbackFunc);
-                            self.gui.bindings[k].addEventListener('keydown', callbackFunc);
-                            self.gui.bindings[k].addEventListener('mouseup', callbackFunc);
-                        }
+                    for (let k in self.currentPlayer.stats) {
+                        const callbackFunc = function(e) {
+                            if (e.target.value == self.currentPlayer.stats[k]) { return; }
+                            self.currentPlayer.setStat(k, e.target.value > self.currentPlayer.stats[k]);
+                            self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
+                            for (let k in self.currentPlayer.stats) {
+                                self.gui.bindings[k].value = self.currentPlayer.stats[k];
+                            }
+                        };
+                        self.gui.bindings[k].addEventListener('keyup', callbackFunc);
+                        self.gui.bindings[k].addEventListener('keydown', callbackFunc);
+                        self.gui.bindings[k].addEventListener('mouseup', callbackFunc);
+                    }
 
-                        self.gui.bindings.button_start.addEventListener('click', function() {
-                            self.currentMap = self.maps['home'];
-                            self.setState(STATE_PLAY);
-                        });
+                    self.gui.bindings.button_start.addEventListener('click', function() {
+                        self.loadMap('home');
                     });
+                });
 
-                    // DEV ONLY
-                    // self.gui.bindings.button_start.click();
-                }
-                break;
+                // DEV ONLY
+                // self.gui.bindings.button_start.click();
+            }
+            break;
 
             case STATE_PLAY:
-                {
-                    this.loadGui('gamebar').then(function(totalbindings) {
-                        self.gui.update = function() {
-                            let binds = self.gui.bindings;
-                            binds.value_hp.innerText = self.currentPlayer.health;
-                            binds.value_total_hp.innerText = self.currentPlayer.totalHealth;
-                            
-                            binds.value_mana.innerText = self.currentPlayer.magic;
-                            binds.value_total_mana.innerText = self.currentPlayer.totalMagic;
-                        };
-                        self.draw();
-                    });
-                }
-                break;
+            {
+                this.setGameboardVisibility(true);
+
+                this.loadGui('gamebar').then(function(totalbindings) {
+                    self.gui.update = function() {
+                        let binds = self.gui.bindings;
+                        binds.value_hp.innerText = self.currentPlayer.health;
+                        binds.value_total_hp.innerText = self.currentPlayer.totalHealth;
+                        
+                        binds.value_mana.innerText = self.currentPlayer.magic;
+                        binds.value_total_mana.innerText = self.currentPlayer.totalMagic;
+                    };
+                    self.draw();
+                });
+            }
+            break;
+
+            case STATE_INVENTORY:
+            {
+                this.setGameboardVisibility(false);
+
+                this.loadGui('inventory').then(function(totalbindings) {
+                    self.gui.bindings.name.innerText = self.currentPlayer.name;
+                    let playerInventory = self.currentPlayer.inventoryGet;
+                    for (let k in playerInventory) {
+                        let listItem = document.createElement('li');
+                        listItem.innerText = `${k}:${self.currentPlayer.inventoryGet[k]}`;
+                        console.log(self.gui.bindings.inventory);
+                        self.gui.bindings.inventory.appendChild(listItem);
+                    }
+                });
+            }
+            break;
         }
+    }
+
+    setGameboardVisibility(isVisible) {
+        this.containerMap.visible = this.containerPlayer.visible = isVisible;
     }
 
     draw() {
-        this.drawDebugView();
-
-        if (this.state != STATE_PLAY) {
-            return;
-        }
-
+        this.drawDbg();
         this.drawMap();
-        this.drawInterface();
+        this.drawGui();
     }
 
-    drawDebugView() {
+    drawDbg() {
         if (this.debugContainer === undefined) {
             this.debugContainer = new createjs.Container();
             this.debugContainer.visible = false;
@@ -248,7 +283,7 @@ class Game {
     }
 
     drawMap() {
-        if (this.currentMap === null || this.currentMap === undefined) {
+        if (this.currentMap === null || this.currentMap === undefined || !this.containerMap.visible) {
             return;
         }
 
@@ -355,11 +390,12 @@ class Game {
                 }
             }
 
-            this.debugMessage('TILES', tileTotal);
+            this.totalDrawnTiles = tileTotal;
+            this.debugMessage('TILES', this.totalDrawnTiles);
         }
     }
 
-    drawInterface() {
+    drawGui() {
         if (this.gui !== undefined && typeof(this.gui.update) === 'function') {
             this.gui.update();
         }
@@ -383,12 +419,18 @@ class Game {
             throw `MAP(${name}) ERROR: 404 Map Not Found!`;
         }
 
+        console.log(this.currentMap);
+
         this.mapToLoad = name;
 
         this.setState(STATE_LOADINGMAP);
     }
 
     movePlayer(x, y) {
+        if (this.state != STATE_PLAY) {
+            return;
+        }
+
         let newX = this.currentPlayer.x + x;
         let newY = this.currentPlayer.y + y;
         let realId = newX + newY * this.currentMap.width;
@@ -413,7 +455,11 @@ class Game {
     }
 
     toggleInventoryView() {
-        console.log('this would\'ve triggered the inventory screen...');
+        if (this.state === STATE_PLAY) {
+            this.setState(STATE_INVENTORY);
+        } else if (this.state === STATE_INVENTORY) {
+            this.setState(STATE_PLAY);
+        }
     }
 
     toggleDebugView() {
@@ -437,62 +483,58 @@ class Game {
     }
 
     handleKeyboard(keyEvent) {
-        if (this.state != STATE_PLAY) {
-            return;
-        }
-
         switch (keyEvent.keyCode) {
             case 38:
             case 87:
-                {
-                    // this.showMessage(`${this.player.name} walks North`);
-                    this.movePlayer(0, -1);
-                }
-                break;
+            {
+                // this.showMessage(`${this.player.name} walks North`);
+                this.movePlayer(0, -1);
+            }
+            break;
 
             case 37:
             case 65:
-                {
-                    // this.showMessage(`${this.player.name} walks West`);
-                    this.movePlayer(-1, 0);
-                }
-                break;
+            {
+                // this.showMessage(`${this.player.name} walks West`);
+                this.movePlayer(-1, 0);
+            }
+            break;
 
             case 40:
             case 83:
-                {
-                    // this.showMessage(`${this.player.name} walks South`);
-                    this.movePlayer(0, 1);
-                }
-                break;
+            {
+                // this.showMessage(`${this.player.name} walks South`);
+                this.movePlayer(0, 1);
+            }
+            break;
 
             case 39:
             case 68:
-                {
-                    // this.showMessage(`${this.player.name} walks East`);
-                    this.movePlayer(1, 0);
-                }
-                break;
+            {
+                // this.showMessage(`${this.player.name} walks East`);
+                this.movePlayer(1, 0);
+            }
+            break;
 
             case 73:
-                {
-                    this.toggleInventoryView();
-                }
-                break;
+            {
+                this.toggleInventoryView();
+            }
+            break;
 
             case 187:
-                {
-                    this.toggleDebugView();
-                }
-                break;
+            {
+                this.toggleDebugView();
+            }
+            break;
 
             default:
-                {
-                    if (this.debugContainer.visible) {
-                        console.log(`KEYBOARD(${keyEvent.keyCode})`);
-                    }
+            {
+                if (this.debugContainer.visible) {
+                    console.log(`KEYBOARD(${keyEvent.keyCode})`);
                 }
-                break;
+            }
+            break;
         }
     }
 
@@ -533,7 +575,7 @@ class Game {
     }
 
     preloaderComplete(e) {
-        this.setState(STATE_MAINMENU);
+        this.setState(STATE_NEWGAME);
     }
 
     preloaderFileReady(fileLoadEvent) {

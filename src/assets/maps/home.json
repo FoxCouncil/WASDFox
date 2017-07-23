@@ -58,11 +58,13 @@
  "orientation":"orthogonal",
  "properties":
     {
-     "map_name":"home"
+     "map_name":"home",
+     "start_pos":"51,45"
     },
  "propertytypes":
     {
-     "map_name":"string"
+     "map_name":"string",
+     "start_pos":"string"
     },
  "renderorder":"right-down",
  "tileheight":32,

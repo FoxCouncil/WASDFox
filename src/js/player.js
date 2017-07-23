@@ -10,8 +10,8 @@ class Player {
 
         this.image = new createjs.Bitmap(`art/spritefox-male.png`);
 
-        this.x = 0;
-        this.y = 0;
+        this.x = -1;
+        this.y = -1;
 
         this.level = 1;
         this.stats = {};
@@ -23,8 +23,9 @@ class Player {
 
         this.health = this.stats.constitution * 2;
         this.magic = (this.stats.luck + this.stats.sexiness) / 5;
-    }
 
+        this.inventory = {};
+    }
 
     get statPointsUsed() {
         let acc = 0;
@@ -53,6 +54,29 @@ class Player {
             return false;
         }
         if (direction) { this.stats[name]++; } else { this.stats[name]--; }
+        return true;
+    }
+
+    get inventoryGet() {
+        return JSON.parse(JSON.stringify(this.inventory));
+    }
+
+    inventoryAddItem(item, qty=1) {
+        if (this.inventory[item] === undefined) {
+            this.inventory[item] = qty;
+        } else {
+            this.inventory[item] += qty;
+        } 
+    }
+
+    inventoryRemoveItem(item, qty=1) {
+        if (this.inventory[item] === undefined || this.inventory[item] < qty) {
+            return false;
+        } else if (this.inventory[item] === qty) {
+            delete this.inventory[item];
+        } else {
+            this.inventory[item] -= qty;
+        }
         return true;
     }
 }

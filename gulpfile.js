@@ -12,6 +12,10 @@ gulp.task('webserver', function() {
   });
 });
 
+gulp.task('favicon', function() {
+    return gulp.src('src/assets/favicon.ico').pipe(gulp.dest('bin'));
+});
+
 gulp.task('assets-art', function() {
     return gulp.src('src/assets/**/*.png').pipe(gulp.dest('bin'));
 });
@@ -40,7 +44,7 @@ gulp.task('clean', function() {
     return gulp.src('bin', {read: false}).pipe(clean());
 });
 
-gulp.task('build', ['assets-art', 'assets-maps', 'html', 'scripts', 'styles']);
+gulp.task('build', ['favicon', 'assets-art', 'assets-maps', 'html', 'scripts', 'styles']);
 
 gulp.task('watch', ['build'], function() {
   gulp.watch('./src/**/*.*', ['build']);

@@ -4,6 +4,11 @@ class Map {
             return null;
         }
         let newMap = new Map(data.properties.map_name, data.width, data.height);
+        if (data.properties.start_pos !== undefined && data.properties.start_pos.includes(',')) {
+            let data = data.properties.start_pos.split(',');
+            newMap.startPos.x = data[0];
+            newMap.startPos.y = data[1];
+        }
         for (let idx = 0; idx < data.layers.length; idx++) {
             let layer = data.layers[idx];
             if (layer.type == 'tilelayer') {
@@ -33,6 +38,7 @@ class Map {
         this.name = name;
         this.width = width;
         this.height = height;
+        this.startPos = { x: -1, y: -1 };
 
         this.layers = {
             base: [],
