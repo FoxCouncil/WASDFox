@@ -5,9 +5,14 @@ class Map {
         }
         let newMap = new Map(data.properties.map_name, data.width, data.height);
         if (data.properties.start_pos !== undefined && data.properties.start_pos.includes(',')) {
-            let data = data.properties.start_pos.split(',');
-            newMap.startPos.x = data[0];
-            newMap.startPos.y = data[1];
+            let startPosData = data.properties.start_pos.split(',');
+            newMap.startPos.x = parseInt(startPosData[0]);
+            newMap.startPos.y = parseInt(startPosData[1]);
+            if (newMap.startPos.x === NaN || newMap.startPos.y === NaN) {
+                newMap.startPos.x = 0;
+                newMap.startPos.y = 0;
+                game.debugMessage('map', 'Invalid start_pos in map file.');
+            }
         }
         for (let idx = 0; idx < data.layers.length; idx++) {
             let layer = data.layers[idx];

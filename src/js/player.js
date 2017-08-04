@@ -3,6 +3,11 @@ class Player {
         const statNames = ['Strength', 'Constitution', 'Luck', 'Sexiness'];
         return statNames;
     }
+
+    static get CurrencyDividers() {
+        const currencyDivs = ['Copper', 'Silver', 'Gold', 'Platnium', 'Diamond'];
+        return currencyDivs;
+    }
     
     constructor(name='Fox', gender='male') {
         this.name = name;
@@ -24,6 +29,8 @@ class Player {
         this.health = this.stats.constitution * 2;
         this.magic = (this.stats.luck + this.stats.sexiness) / 5;
 
+        this.money = 0;
+        this.ledger = [];
         this.inventory = {};
     }
 
@@ -49,12 +56,8 @@ class Player {
         return ((this.stats.luck + this.stats.sexiness) / 5) * this.level;
     }
 
-    setStat(name, direction=true) {
-        if (this.stats[name] === undefined || (direction && this.statPointsRemaining === 0) || (!direction && this.stats[name] === 0)) {
-            return false;
-        }
-        if (direction) { this.stats[name]++; } else { this.stats[name]--; }
-        return true;
+    get moneyTotal() {
+        return this.money;
     }
 
     get inventoryGet() {
@@ -78,5 +81,30 @@ class Player {
             this.inventory[item] -= qty;
         }
         return true;
+    }
+
+    setStat(name, direction=true) {
+        if (this.stats[name] === undefined || (direction && this.statPointsRemaining === 0) || (!direction && this.stats[name] === 0)) {
+            return false;
+        }
+        if (direction) { this.stats[name]++; } else { this.stats[name]--; }
+        return true;
+    }
+
+    moneyDebit(amount, reason='Woot, free money') {
+        if (amount > this.money) {
+            return false;
+        }
+
+        this.ledger.push({ type: 0, amount: amount, reason: reason, balance:this.money});
+        this.money -= amount;        
+
+        return true;
+    }
+
+    moneyCredit(amount, reason='Woot, free money') {
+        this.ledger.push({ type: 1, amount: amount, reason: reason, balance:this.money});
+        this.money += amount;
+        return this.money;
     }
 }

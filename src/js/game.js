@@ -7,6 +7,7 @@ class Game {
         this.gui = {};
         this.maps = [];
         this.messages = [];
+        this.prevMapPos = [];
 
         this.currentMap = null;
         this.currentPlayer = null;
@@ -52,6 +53,7 @@ class Game {
             this.queue.on('fileload', this.preloaderFileReady, this);
             this.queue.on('complete', this.preloaderComplete, this);
 
+            this.queue.loadFile('maps/test.json');
             this.queue.loadFile('maps/home.json');
         } else {
             console.error('GAME() ERROR: Game object already initialized!');
@@ -108,8 +110,19 @@ class Game {
                         }
                     }
                 } else {
+                    if (this.mapToLoad === undefined) {
+                        return;
+                    }
                     this.currentMap = this.maps[this.mapToLoad];
                     delete this.mapToLoad;
+                    let newPos = null;
+                    if (this.prevMapPos[this.currentMap.name] === undefined) {
+                        newPos = this.currentMap.startPos;
+                    } else {
+                        newPos = this.prevMapPos[this.currentMap.name];
+                    }
+                    this.currentPlayer.x = newPos.x;
+                    this.currentPlayer.y = newPos.y;
                     this.drawMap();
                     this.mapToShowIds = Array.from(Array(this.containerMap.numChildren).keys());
                     this.setState(STATE_SHOWINGMAP);
@@ -206,6 +219,7 @@ class Game {
                     }
 
                     self.gui.bindings.button_start.addEventListener('click', function() {
+                        self.state = STATE_PLAY;
                         self.loadMap('home');
                     });
                 });
@@ -339,7 +353,7 @@ class Game {
                             tileTotal++;
                         }
 
-                        if (layers.base[aTileId] != undefined && layers.fringe[aTileId] != 0) {
+                        if (layers.fringe[aTileId] != undefined && layers.fringe[aTileId] != 0) {
                             let aTile = tile.clone();
                             aTile.x = posX;
                             aTile.y = posY;
@@ -415,11 +429,17 @@ class Game {
     }
 
     loadMap(name) {
+        if (this.state !== STATE_PLAY) {
+            throw `MAP() ERROR: Cannot switch map while in state (${this.state.toString()})!`;
+        }
+
         if (this.maps[name] === undefined) {
             throw `MAP(${name}) ERROR: 404 Map Not Found!`;
         }
 
-        console.log(this.currentMap);
+        if (this.currentMap !== null) {
+            this.prevMapPos[this.currentMap.name] = { x: this.currentPlayer.x, y: this.currentPlayer.y };
+        }
 
         this.mapToLoad = name;
 
@@ -438,8 +458,9 @@ class Game {
         if (this.currentMap.triggers[realId] !== undefined) {
             eval(this.currentMap.triggers[realId]);
         }
-
-        if (this.currentMap.layers.fringe[realId] != 0) {
+        
+        let fringeCheck = this.currentMap.layers.fringe[realId];
+        if (fringeCheck !== undefined && fringeCheck != 0) {
             return;
         }
 
