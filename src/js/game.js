@@ -6,6 +6,7 @@ class Game {
 
         this.gui = {};
         this.maps = [];
+        this.items = [];
         this.messages = [];
         this.prevMapPos = [];
 
@@ -55,6 +56,7 @@ class Game {
 
             this.queue.loadFile('maps/test.json');
             this.queue.loadFile('maps/home.json');
+            this.queue.loadFile('items.json');
         } else {
             console.error('GAME() ERROR: Game object already initialized!');
         }
@@ -231,6 +233,8 @@ class Game {
 
             case STATE_PLAY:
             {
+                let that = this;
+
                 this.setGameboardVisibility(true);
 
                 this.loadGui('gamebar').then(function(totalbindings) {
@@ -241,6 +245,16 @@ class Game {
                         
                         binds.value_mana.innerText = self.currentPlayer.magic;
                         binds.value_total_mana.innerText = self.currentPlayer.totalMagic;
+
+                        while (binds.console.firstChild) {
+                            binds.console.removeChild(binds.console.firstChild);
+                        }
+                        for (let i = 0; i < that.messages.length; i++) {
+                            let newMsg = document.createElement('div');
+                            newMsg.innerText = that.messages[i];
+                            binds.console.appendChild(newMsg);
+                        }
+                        binds.console.scrollTop = binds.console.scrollHeight; 
                     };
                     self.draw();
                 });
@@ -368,6 +382,21 @@ class Game {
                             tileTotal++;
                         }
 
+                        if (layers.object[aTileId] != undefined && layers.object[aTileId] != 0) {
+                            let aTile = tile.clone();
+                            aTile.x = posX;
+                            aTile.y = posY;
+
+                            aTile.gotoAndStop(layers.object[aTileId] - 1);
+
+                            if (this.state == STATE_LOADINGMAP) {
+                                aTile.alpha = 0;
+                            }
+
+                            this.containerMap.addChild(aTile);
+                            tileTotal++;
+                        }
+
                         if (this.debugContainer.visible) {
                             var text = new createjs.Text(`${x}x${y}\n${alterX}x${alterY}`, "10px Courier New", "#000");
                             text.x = posX + 1;
@@ -416,16 +445,15 @@ class Game {
     }
 
     clearMessages() {
-        while (this.statusBar.firstChild) {
-            this.statusBar.removeChild(this.statusBar.firstChild);
-        }
+        this.messages = [];
     }
 
     showMessage(msg) {
-        let newMsg = document.createElement('div');
+        this.messages.push(msg);
+        /* let newMsg = document.createElement('div');
         newMsg.innerText = msg;
         this.statusBar.appendChild(newMsg);
-        this.statusBar.scrollTop = this.statusBar.scrollHeight;
+        this.statusBar.scrollTop = this.statusBar.scrollHeight; */
     }
 
     loadMap(name) {
@@ -446,6 +474,10 @@ class Game {
         this.setState(STATE_LOADINGMAP);
     }
 
+    getItem(id) {
+        return this.items.find(x => x.id === id);
+    }
+
     movePlayer(x, y) {
         if (this.state != STATE_PLAY) {
             return;
@@ -458,10 +490,19 @@ class Game {
         if (this.currentMap.triggers[realId] !== undefined) {
             eval(this.currentMap.triggers[realId]);
         }
-        
+
         let fringeCheck = this.currentMap.layers.fringe[realId];
         if (fringeCheck !== undefined && fringeCheck != 0) {
             return;
+        }
+
+        let objectCheck = this.currentMap.layers.object[realId];
+        if (objectCheck !== undefined && objectCheck != 0) {
+            let item = this.getItem(objectCheck);
+            if (item != null) {
+                this.currentMap.layers.object[realId] = 0;
+                this.showMessage(`You pick up ${item.name}`);
+            }
         }
 
         if (this.currentPlayer.x + x >= 0 && this.currentPlayer.x + x < this.currentMap.width) {
@@ -537,6 +578,7 @@ class Game {
             }
             break;
 
+            // I
             case 73:
             {
                 this.toggleInventoryView();
@@ -608,6 +650,12 @@ class Game {
             if (jsonData.type !== undefined && jsonData.type === 'map') {
                 let loadedMap = Map.ParseJson(jsonData);
                 this.maps[loadedMap.name] = loadedMap;
+            } else if (jsonData.type !== undefined && jsonData.type === 'items') {
+                let itemsList = jsonData.items;
+                for (let i = 0; i < itemsList.length; i++) {
+                    let loadedItem = Item.ParseJson(itemsList[i]);
+                    this.items.push(loadedItem);
+                }
             }
         }
     }

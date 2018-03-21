@@ -1,6 +1,7 @@
 var gulp = require('gulp');  
 var sass = require('gulp-sass');
 var clean = require('gulp-clean');
+var merge = require('gulp-merge-json');
 var concat = require('gulp-concat');
 var connect = require('gulp-connect');
 var livereload = require('gulp-livereload');
@@ -24,8 +25,12 @@ gulp.task('assets-maps', function() {
     return gulp.src('src/assets/maps/*.json').pipe(gulp.dest('bin/maps'));
 });
 
+gulp.task('assets-items', function() {
+    return gulp.src('src/assets/items/*.json').pipe(merge({ startObj: { type: "items" }, concatArrays: true, fileName: "items.json" })).pipe(gulp.dest('bin/'));
+});
+
 gulp.task('scripts', function() {
-  return gulp.src(['src/js/utils.js', 'src/js/stats.js', 'src/js/map.js', 'src/js/player.js', 'src/js/game.js', 'src/js/main.js'])
+  return gulp.src(['src/js/utils.js', 'src/js/stats.js', 'src/js/map.js', 'src/js/item.js', 'src/js/player.js', 'src/js/game.js', 'src/js/main.js'])
     .pipe(concat('game.js'))
     .pipe(gulp.dest('bin/'));
 });
@@ -44,7 +49,7 @@ gulp.task('clean', function() {
     return gulp.src('bin', {read: false}).pipe(clean());
 });
 
-gulp.task('build', ['favicon', 'assets-art', 'assets-maps', 'html', 'scripts', 'styles']);
+gulp.task('build', ['favicon', 'assets-art', 'assets-maps', 'assets-items', 'html', 'scripts', 'styles']);
 
 gulp.task('watch', ['build'], function() {
   gulp.watch('./src/**/*.*', ['build']);

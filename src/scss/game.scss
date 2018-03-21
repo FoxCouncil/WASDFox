@@ -23,6 +23,7 @@ html, body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    background-color: #000;
 }
 
 body {
@@ -54,6 +55,7 @@ canvas {
 }
 
 .dialog {
+    background-color: #FFF;
     border: 1px solid black;
     border-radius: .2rem;
     width: 60%;

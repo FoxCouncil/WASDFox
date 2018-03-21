@@ -28,5 +28,9 @@
     "gulp-connect": "^5.0.0",
     "gulp-livereload": "^3.8.1",
     "gulp-sass": "^3.1.0"
+  },
+  "dependencies": {
+    "gulp-merge-json": "^1.2.1",
+    "npm": "^5.7.1"
   }
 }

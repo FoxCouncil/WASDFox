@@ -4,11 +4,6 @@ class Player {
         return statNames;
     }
 
-    static get CurrencyDividers() {
-        const currencyDivs = ['Copper', 'Silver', 'Gold', 'Platnium', 'Diamond'];
-        return currencyDivs;
-    }
-    
     constructor(name='Fox', gender='male') {
         this.name = name;
         this.gender = gender;
@@ -23,7 +18,7 @@ class Player {
         this.statsTotalPoints = 6 * Player.Stats.length;
 
         for (var i = 0; i < Player.Stats.length; i++) {
-            this.stats[Player.Stats[i].toLowerCase()] = 5;            
+            this.stats[Player.Stats[i].toLowerCase()] = 5;
         }
 
         this.health = this.stats.constitution * 2;
@@ -56,10 +51,6 @@ class Player {
         return ((this.stats.luck + this.stats.sexiness) / 5) * this.level;
     }
 
-    get moneyTotal() {
-        return this.money;
-    }
-
     get inventoryGet() {
         return JSON.parse(JSON.stringify(this.inventory));
     }
@@ -69,7 +60,7 @@ class Player {
             this.inventory[item] = qty;
         } else {
             this.inventory[item] += qty;
-        } 
+        }
     }
 
     inventoryRemoveItem(item, qty=1) {
@@ -91,13 +82,13 @@ class Player {
         return true;
     }
 
-    moneyDebit(amount, reason='Woot, free money') {
+    moneyDebit(amount, reason='Oh no, taxes!') {
         if (amount > this.money) {
             return false;
         }
 
         this.ledger.push({ type: 0, amount: amount, reason: reason, balance:this.money});
-        this.money -= amount;        
+        this.money -= amount;
 
         return true;
     }
