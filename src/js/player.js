@@ -4,11 +4,14 @@ class Player {
         return statNames;
     }
 
+    static Load(userObj) {
+        let loadingPlayer = new Player();
+        return Object.assign(loadingPlayer, userObj);
+    }
+
     constructor(name='Fox', gender='male') {
         this.name = name;
         this.gender = gender;
-
-        this.image = new createjs.Bitmap(`art/spritefox-male.png`);
 
         this.x = -1;
         this.y = -1;
@@ -39,7 +42,7 @@ class Player {
         return this.statsTotalPoints;
     }
 
-    get statPointsRemaining () {
+    get statPointsRemaining() {
         return this.statPointsTotal - this.statPointsUsed;
     }
 

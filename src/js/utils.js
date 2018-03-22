@@ -24,6 +24,20 @@ Object.prototype[Symbol.iterator] = function*() {
 };
 
 class Utils {
+    static StringToState(stateStr) {
+        if (stateStr.includes("Symbol(")) {
+            stateStr = stateStr.replace('Symbol(', '').replace(')', '');
+        }
+        switch (stateStr) {
+            case "STATE_UNINITIALIZED": return STATE_UNINITIALIZED; break;
+            case "STATE_NEWGAME": return STATE_NEWGAME; break;
+            case "STATE_PLAY": return STATE_PLAY; break;
+            case "STATE_INVENTORY": return STATE_INVENTORY; break;
+            case "STATE_LOADINGMAP": return STATE_LOADINGMAP; break;
+            case "STATE_SHOWINGMAP": return STATE_SHOWINGMAP; break;
+        }
+    }
+
     static RandomNumber(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }

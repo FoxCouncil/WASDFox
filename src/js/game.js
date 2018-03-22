@@ -12,6 +12,7 @@ class Game {
 
         this.currentMap = null;
         this.currentPlayer = null;
+        this.currentPlayerImage = new createjs.Bitmap(`art/spritefox-male.png`);
 
         this.containerMap = new createjs.Container();
         this.containerPlayer = new createjs.Container();
@@ -184,6 +185,9 @@ class Game {
         switch (newState) {
             case STATE_NEWGAME:
             {
+                this.currentMap = null;
+                this.messages = [];
+                this.prevMapPos = [];
                 this.setGameboardVisibility(false);
                 this.loadGui('newgame').then(function(totalbindings) {
                     for (var i = 0; i < Player.Stats.length; i++) {
@@ -225,9 +229,6 @@ class Game {
                         self.loadMap('home');
                     });
                 });
-
-                // DEV ONLY
-                // self.gui.bindings.button_start.click();
             }
             break;
 
@@ -254,8 +255,10 @@ class Game {
                             newMsg.innerText = that.messages[i];
                             binds.console.appendChild(newMsg);
                         }
-                        binds.console.scrollTop = binds.console.scrollHeight; 
+                        binds.console.scrollTop = binds.console.scrollHeight;
                     };
+                    self.gui.bindings.button_inventory.addEventListener('click', function() { that.toggleInventoryView() });
+                    self.gui.bindings.button_restart.addEventListener('click', function() { if (confirm("Are you sure you want to restart your game?")) { that.stateClear(); that.setState(STATE_NEWGAME); } });
                     self.draw();
                 });
             }
@@ -263,9 +266,12 @@ class Game {
 
             case STATE_INVENTORY:
             {
+                let that = this;
+
                 this.setGameboardVisibility(false);
 
                 this.loadGui('inventory').then(function(totalbindings) {
+                    self.gui.bindings.button_close.addEventListener('click', function() { that.toggleInventoryView(); });
                     self.gui.bindings.name.innerText = self.currentPlayer.name;
                     let playerInventory = self.currentPlayer.inventoryGet;
                     for (let k in playerInventory) {
@@ -288,6 +294,7 @@ class Game {
         this.drawDbg();
         this.drawMap();
         this.drawGui();
+        this.stateSave();
     }
 
     drawDbg() {
@@ -424,11 +431,11 @@ class Game {
 
                     if (x == centerX && y == centerY) {
                         if (this.containerPlayer.children.length === 0) {
-                            this.containerPlayer.addChild(this.currentPlayer.image);
+                            this.containerPlayer.addChild(this.currentPlayerImage);
                         }
 
-                        this.currentPlayer.image.x = x * this.tileSize;
-                        this.currentPlayer.image.y = y * this.tileSize;
+                        this.currentPlayerImage.x = x * this.tileSize;
+                        this.currentPlayerImage.y = y * this.tileSize;
                     }
                 }
             }
@@ -546,6 +553,14 @@ class Game {
 
     handleKeyboard(keyEvent) {
         switch (keyEvent.keyCode) {
+            case 27:
+            {
+                if (this.state != STATE_PLAY && this.state != STATE_NEWGAME && this.state != STATE_UNINITIALIZED) {
+                    this.setState(STATE_PLAY);
+                }
+            }
+            break;
+
             case 38:
             case 87:
             {
@@ -601,6 +616,37 @@ class Game {
         }
     }
 
+    stateSave() {
+        if (this.state === STATE_UNINITIALIZED) {
+            return;
+        }
+        let stateObj = {};
+        stateObj.player = this.currentPlayer;
+        stateObj.map = this.currentMap;
+        stateObj.state = this.state.toString();
+        stateObj.messages = this.messages;
+        localStorage.state = JSON.stringify(stateObj);
+    }
+
+    stateLoad() {
+        if (localStorage.length == 0 || localStorage.state === undefined) {
+            this.setState(STATE_NEWGAME);
+            return;
+        }
+
+        let stateObj = JSON.parse(localStorage.state);
+        this.currentMap = stateObj.map;
+        this.currentPlayer = Player.Load(stateObj.player);
+        this.messages = stateObj.messages;
+        this.setState(Utils.StringToState(stateObj.state));
+        
+        return true;
+    }
+
+    stateClear() {
+        delete localStorage.state;
+    }
+
     loadGui(name) {
         let self = this;
         return fetch(`${name}.html`).then(function(http) {
@@ -638,7 +684,7 @@ class Game {
     }
 
     preloaderComplete(e) {
-        this.setState(STATE_NEWGAME);
+        this.stateLoad();
     }
 
     preloaderFileReady(fileLoadEvent) {
