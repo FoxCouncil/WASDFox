@@ -1,21 +1,24 @@
 <div class="gamebar">
     <div class="values">
-        <table>
+        <table border="0">
             <tr>
-                <td class="valuetitle" style="text-align: right">HP:</td>
-                <td>
+                <td rowspan="3" class="vertical-bars health" id="value_hp_bar">
                     <span id="value_hp" class="mainvalue">0</span><!--
                     --><span class="valueseperator">/</span><!--
                     --><span id="value_total_hp" class="totalvalue">0</span>
                 </td>
-            </tr>
-            <tr>
-                <td class="valuetitle" style="text-align: right">Mana:</td>
-                <td>
+                <td rowspan="3" class="vertical-bars mana" id="value_mana_bar">
                     <span id="value_mana" class="mainvalue">0</span><!--
                     --><span class="valueseperator">/</span><!--
                     --><span id="value_total_mana" class="totalvalue">0</span>
                 </td>
+                <td class="numerical-display" id="display-one">💰 <span id="display_one_value">0₻</span></td>
+            </tr>
+            <tr>
+                <td class="numerical-display" id="display-two">🎒 <span id="display_two_value">0</span></td>
+            </tr>
+            <tr>
+                <td class="numerical-display" id="display-three">⚡ <span id="display_three_value">0%</span></td>
             </tr>
         </table>
     </div>

@@ -13,9 +13,6 @@ class Player {
         this.name = name;
         this.gender = gender;
 
-        this.x = -1;
-        this.y = -1;
-
         this.level = 1;
         this.stats = {};
         this.statsTotalPoints = 6 * Player.Stats.length;

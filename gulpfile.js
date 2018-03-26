@@ -3,6 +3,7 @@ var sass = require('gulp-sass');
 var clean = require('gulp-clean');
 var merge = require('gulp-merge-json');
 var concat = require('gulp-concat');
+var concatS = require('gulp-concat-sourcemap');
 var connect = require('gulp-connect');
 var livereload = require('gulp-livereload');
 
@@ -31,7 +32,7 @@ gulp.task('assets-items', function() {
 
 gulp.task('scripts', function() {
   return gulp.src(['src/js/utils.js', 'src/js/stats.js', 'src/js/map.js', 'src/js/item.js', 'src/js/player.js', 'src/js/game.js', 'src/js/main.js'])
-    .pipe(concat('game.js'))
+    .pipe(concatS('game.js'))
     .pipe(gulp.dest('bin/'));
 });
 

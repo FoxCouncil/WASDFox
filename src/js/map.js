@@ -38,12 +38,23 @@ class Map {
         }  
         return newMap;
     }
+
+    static Deserialize(data) {
+        const mapObj = JSON.parse(data);
+        let newMapObj = new Map(mapObj.name, mapObj.width, mapObj.height);
+        newMapObj.startPos = mapObj.startPos;
+        newMapObj.playerPos = mapObj.playerPos;
+        newMapObj.layers = mapObj.layers;
+        newMapObj.triggers = mapObj.triggers;
+        return newMapObj;
+    }
     
     constructor(name='Map', width=1, height=1) {
         this.name = name;
         this.width = width;
         this.height = height;
         this.startPos = { x: -1, y: -1 };
+        this.playerPos = { x: -1, y: -1 };
 
         this.layers = {
             base: [],
@@ -52,5 +63,24 @@ class Map {
         };
 
         this.triggers = [];
+    }
+
+    serialize() {
+        // start with an empty object (see other alternatives below) 
+        let jsonObj = {};
+
+        // add all properties
+        const proto = Object.getPrototypeOf(this);
+        for (const key of Object.keys(proto)) {
+            const desc = Object.getOwnPropertyDescriptor(proto, key);
+            const hasGetter = desc && typeof desc.get === 'function';
+            if (hasGetter) {
+                jsonObj[key] = desc.get();
+            }
+        }
+
+        jsonObj = Object.assign(jsonObj, this);
+
+        return JSON.stringify(jsonObj);
     }
 }

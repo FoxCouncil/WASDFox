@@ -5,10 +5,10 @@ class Game {
         this.canvasId = canvasId;
 
         this.gui = {};
-        this.maps = [];
+        this.maps = {};
+        this.dmaps = {};
         this.items = [];
         this.messages = [];
-        this.prevMapPos = [];
 
         this.currentMap = null;
         this.currentPlayer = null;
@@ -116,19 +116,16 @@ class Game {
                     if (this.mapToLoad === undefined) {
                         return;
                     }
-                    this.currentMap = this.maps[this.mapToLoad];
+                    this.currentMap = this.mapToLoad;
                     delete this.mapToLoad;
-                    let newPos = null;
-                    if (this.prevMapPos[this.currentMap.name] === undefined) {
-                        newPos = this.currentMap.startPos;
-                    } else {
-                        newPos = this.prevMapPos[this.currentMap.name];
+                    const map = this.maps[this.currentMap];
+                    if (map.playerPos.x == -1 && map.playerPos.y == -1) {
+                        map.playerPos.x = map.startPos.x;
+                        map.playerPos.y = map.startPos.y;
                     }
-                    this.currentPlayer.x = newPos.x;
-                    this.currentPlayer.y = newPos.y;
                     this.drawMap();
                     this.mapToShowIds = Array.from(Array(this.containerMap.numChildren).keys());
-                    this.setState(STATE_SHOWINGMAP);
+                    this.stateSet(STATE_SHOWINGMAP);
                 }
             }
             break;
@@ -154,7 +151,7 @@ class Game {
                 } else {
                     delete this.mapToShowIds;
                     this.containerPlayer.visible = true;
-                    this.setState(STATE_PLAY);
+                    this.stateSet(STATE_PLAY);
                 }
             }
             break;
@@ -166,124 +163,6 @@ class Game {
         this.height = window.innerHeight;
 
         this.draw();
-    }
-
-    setState(newState) {
-        if (typeof newState !== 'symbol' || newState === STATE_UNINITIALIZED) {
-            throw 'InvalidStateException';
-        }
-
-        if (this.state === newState) {
-            return;
-        }
-
-        this.debugMessage('STATE', this.state.toString(), ` CHANGED TO STATE(${newState.toString()})`);
-
-        this.state = newState;
-        let self = this;
-
-        switch (newState) {
-            case STATE_NEWGAME:
-            {
-                this.currentMap = null;
-                this.messages = [];
-                this.prevMapPos = [];
-                this.setGameboardVisibility(false);
-                this.loadGui('newgame').then(function(totalbindings) {
-                    for (var i = 0; i < Player.Stats.length; i++) {
-                        let statName = Player.Stats[i];
-                        let statLabel = document.createElement('label');
-                        let statSpan = document.createElement('span');
-                        statSpan.innerText = statName;
-                        statLabel.appendChild(statSpan);
-                        let statInput = document.createElement('input');
-                        statInput.setAttribute('type', 'number');
-                        statInput.setAttribute('max', '10');
-                        statInput.setAttribute('value', '5');
-                        statInput.setAttribute('min', '1');
-                        statLabel.appendChild(statInput);
-                        self.gui.bindings[statName.toLowerCase()] = statInput;
-                        self.gui.bindings.stats.appendChild(statLabel);
-                    }
-
-                    self.currentPlayer = new Player();
-
-                    self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
-
-                    for (let k in self.currentPlayer.stats) {
-                        const callbackFunc = function(e) {
-                            if (e.target.value == self.currentPlayer.stats[k]) { return; }
-                            self.currentPlayer.setStat(k, e.target.value > self.currentPlayer.stats[k]);
-                            self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
-                            for (let k in self.currentPlayer.stats) {
-                                self.gui.bindings[k].value = self.currentPlayer.stats[k];
-                            }
-                        };
-                        self.gui.bindings[k].addEventListener('keyup', callbackFunc);
-                        self.gui.bindings[k].addEventListener('keydown', callbackFunc);
-                        self.gui.bindings[k].addEventListener('mouseup', callbackFunc);
-                    }
-
-                    self.gui.bindings.button_start.addEventListener('click', function() {
-                        self.state = STATE_PLAY;
-                        self.loadMap('home');
-                    });
-                });
-            }
-            break;
-
-            case STATE_PLAY:
-            {
-                let that = this;
-
-                this.setGameboardVisibility(true);
-
-                this.loadGui('gamebar').then(function(totalbindings) {
-                    self.gui.update = function() {
-                        let binds = self.gui.bindings;
-                        binds.value_hp.innerText = self.currentPlayer.health;
-                        binds.value_total_hp.innerText = self.currentPlayer.totalHealth;
-                        
-                        binds.value_mana.innerText = self.currentPlayer.magic;
-                        binds.value_total_mana.innerText = self.currentPlayer.totalMagic;
-
-                        while (binds.console.firstChild) {
-                            binds.console.removeChild(binds.console.firstChild);
-                        }
-                        for (let i = 0; i < that.messages.length; i++) {
-                            let newMsg = document.createElement('div');
-                            newMsg.innerText = that.messages[i];
-                            binds.console.appendChild(newMsg);
-                        }
-                        binds.console.scrollTop = binds.console.scrollHeight;
-                    };
-                    self.gui.bindings.button_inventory.addEventListener('click', function() { that.toggleInventoryView() });
-                    self.gui.bindings.button_restart.addEventListener('click', function() { if (confirm("Are you sure you want to restart your game?")) { that.stateClear(); that.setState(STATE_NEWGAME); } });
-                    self.draw();
-                });
-            }
-            break;
-
-            case STATE_INVENTORY:
-            {
-                let that = this;
-
-                this.setGameboardVisibility(false);
-
-                this.loadGui('inventory').then(function(totalbindings) {
-                    self.gui.bindings.button_close.addEventListener('click', function() { that.toggleInventoryView(); });
-                    self.gui.bindings.name.innerText = self.currentPlayer.name;
-                    let playerInventory = self.currentPlayer.inventoryGet;
-                    for (let k in playerInventory) {
-                        let listItem = document.createElement('li');
-                        listItem.innerText = `${k}:${self.currentPlayer.inventoryGet[k]}`;
-                        console.log(self.gui.bindings.inventory);
-                        self.gui.bindings.inventory.appendChild(listItem);
-                    }
-                });
-            }
-            break;
-        }
     }
 
     setGameboardVisibility(isVisible) {
@@ -318,11 +197,11 @@ class Game {
     }
 
     drawMap() {
-        if (this.currentMap === null || this.currentMap === undefined || !this.containerMap.visible) {
+        if (this.currentMap == null || !this.containerMap.visible) {
             return;
         }
 
-        let map = this.currentMap;
+        let map = this.maps[this.currentMap];
         let layers = map.layers;
 
         this.containerMap.removeAllChildren();
@@ -337,8 +216,8 @@ class Game {
             let centerX = Math.floor(totalTilesX / 2);
             let centerY = Math.floor(totalTilesY / 2);
 
-            let drawOffsetX = centerX - this.currentPlayer.x;
-            let drawOffsetY = centerY - this.currentPlayer.y;
+            let drawOffsetX = centerX - map.playerPos.x;
+            let drawOffsetY = centerY - map.playerPos.y;
 
             let tile = new createjs.Sprite(this.tileset);
 
@@ -405,27 +284,31 @@ class Game {
                         }
 
                         if (this.debugContainer.visible) {
-                            var text = new createjs.Text(`${x}x${y}\n${alterX}x${alterY}`, "10px Courier New", "#000");
-                            text.x = posX + 1;
-                            text.y = posY + 1;
+                            var textPos = new createjs.Text(`${x}x${y}\n${alterX}x${alterY}`, "10px Courier New", "#000");
+                            textPos.x = posX + 1;
+                            textPos.y = posY + 1;
 
-                            if (this.state == STATE_LOADINGMAP) {
-                                text.alpha = 0;
+                            if (this.state != STATE_LOADINGMAP) {
+                                this.containerMap.addChild(textPos);
+                            }                            
+
+                            if (map.triggers[aTileId] != null) {
+                                var textTrigger = new createjs.Text('T', "40px Arial", "#F0F");
+                                textTrigger.x = posX;
+                                textTrigger.y = posY;
+
+                                if (this.state != STATE_LOADINGMAP) {
+                                    this.containerMap.addChild(textTrigger);
+                                }
+                            } else if (map.layers.object[aTileId] != 0) {
+                                var textTrigger = new createjs.Text('O', "32px Arial", "#F0F");
+                                textTrigger.x = posX;
+                                textTrigger.y = posY;
+
+                                if (this.state != STATE_LOADINGMAP) {
+                                    this.containerMap.addChild(textTrigger);
+                                }
                             }
-
-                            this.containerMap.addChild(text);
-                        }
-
-                        if (this.debugContainer.visible && map.triggers[aTileId] !== undefined) {
-                            var text = new createjs.Text('T', "40px Arial", "#F0F");
-                            text.x = posX;
-                            text.y = posY;
-
-                            if (this.state == STATE_LOADINGMAP) {
-                                text.alpha = 0;
-                            }
-
-                            this.containerMap.addChild(text);
                         }
                     }
 
@@ -472,13 +355,9 @@ class Game {
             throw `MAP(${name}) ERROR: 404 Map Not Found!`;
         }
 
-        if (this.currentMap !== null) {
-            this.prevMapPos[this.currentMap.name] = { x: this.currentPlayer.x, y: this.currentPlayer.y };
-        }
-
         this.mapToLoad = name;
 
-        this.setState(STATE_LOADINGMAP);
+        this.stateSet(STATE_LOADINGMAP);
     }
 
     getItem(id) {
@@ -490,34 +369,39 @@ class Game {
             return;
         }
 
-        let newX = this.currentPlayer.x + x;
-        let newY = this.currentPlayer.y + y;
-        let realId = newX + newY * this.currentMap.width;
+        const map = this.maps[this.currentMap];
 
-        if (this.currentMap.triggers[realId] !== undefined) {
-            eval(this.currentMap.triggers[realId]);
+        const newX = map.playerPos.x + x; // x is the direction moving on that axis
+        const newY = map.playerPos.y + y; // y is the direction moving on that axis
+
+        const realId = newX + newY * map.width;
+
+        if (map.triggers[realId] != null) {
+            let triggerStr = map.triggers[realId]
+            let triggerRtn = eval(`(${triggerStr})`);
+            if (triggerRtn) return;
         }
 
-        let fringeCheck = this.currentMap.layers.fringe[realId];
+        let fringeCheck = map.layers.fringe[realId];
         if (fringeCheck !== undefined && fringeCheck != 0) {
             return;
         }
 
-        let objectCheck = this.currentMap.layers.object[realId];
+        let objectCheck = map.layers.object[realId];
         if (objectCheck !== undefined && objectCheck != 0) {
             let item = this.getItem(objectCheck);
             if (item != null) {
-                this.currentMap.layers.object[realId] = 0;
+                map.layers.object[realId] = 0;
                 this.showMessage(`You pick up ${item.name}`);
             }
         }
 
-        if (this.currentPlayer.x + x >= 0 && this.currentPlayer.x + x < this.currentMap.width) {
-            this.currentPlayer.x += x;
+        if (map.playerPos.x + x >= 0 && map.playerPos.x + x < map.width) {
+            map.playerPos.x += x;
         }
 
-        if (this.currentPlayer.y + y >= 0 && this.currentPlayer.y + y < this.currentMap.height) {
-            this.currentPlayer.y += y;
+        if (map.playerPos.y + y >= 0 && map.playerPos.y + y < map.height) {
+            map.playerPos.y += y;
         }
 
         this.draw();
@@ -525,9 +409,9 @@ class Game {
 
     toggleInventoryView() {
         if (this.state === STATE_PLAY) {
-            this.setState(STATE_INVENTORY);
+            this.stateSet(STATE_INVENTORY);
         } else if (this.state === STATE_INVENTORY) {
-            this.setState(STATE_PLAY);
+            this.stateSet(STATE_PLAY);
         }
     }
 
@@ -543,12 +427,26 @@ class Game {
 
     handleTrigger(triggerName) {
         switch (triggerName) {
+            case "map_test": {
+                game.loadMap('test');
+                return true;
+            }
+            break;
+            case "map_home": {
+                game.loadMap('home');
+                return true;
+            }
+            break;
+
             default: {
                 if (this.debugContainer.visible) {
                     console.log(`TRIGGER(${triggerName})`);
                 }
             }
+            break;
         }
+
+        return false;
     }
 
     handleKeyboard(keyEvent) {
@@ -556,7 +454,7 @@ class Game {
             case 27:
             {
                 if (this.state != STATE_PLAY && this.state != STATE_NEWGAME && this.state != STATE_UNINITIALIZED) {
-                    this.setState(STATE_PLAY);
+                    this.stateSet(STATE_PLAY);
                 }
             }
             break;
@@ -616,13 +514,144 @@ class Game {
         }
     }
 
+    stateSet(newState) {
+        if (typeof newState !== 'symbol' || newState === STATE_UNINITIALIZED) {
+            throw 'InvalidStateException';
+        }
+
+        if (this.state === newState) {
+            return;
+        }
+
+        this.debugMessage('STATE', this.state.toString(), ` CHANGED TO STATE(${newState.toString()})`);
+
+        this.state = newState;
+        let self = this;
+
+        switch (newState) {
+            case STATE_NEWGAME:
+            {
+                this.stateClear();
+
+                this.setGameboardVisibility(false);
+
+                this.loadGui('newgame').then(function(totalbindings) {
+                    for (var i = 0; i < Player.Stats.length; i++) {
+                        let statName = Player.Stats[i];
+                        let statLabel = document.createElement('label');
+                        let statSpan = document.createElement('span');
+                        statSpan.innerText = statName;
+                        statLabel.appendChild(statSpan);
+                        let statInput = document.createElement('input');
+                        statInput.setAttribute('type', 'number');
+                        statInput.setAttribute('max', '10');
+                        statInput.setAttribute('value', '5');
+                        statInput.setAttribute('min', '1');
+                        statLabel.appendChild(statInput);
+                        self.gui.bindings[statName.toLowerCase()] = statInput;
+                        self.gui.bindings.stats.appendChild(statLabel);
+                    }
+
+                    self.currentPlayer = new Player();
+
+                    self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
+
+                    for (let k in self.currentPlayer.stats) {
+                        const callbackFunc = function(e) {
+                            if (e.target.value == self.currentPlayer.stats[k]) { return; }
+                            self.currentPlayer.setStat(k, e.target.value > self.currentPlayer.stats[k]);
+                            self.gui.bindings.pointsleft.value = self.currentPlayer.statPointsRemaining;
+                            for (let k in self.currentPlayer.stats) {
+                                self.gui.bindings[k].value = self.currentPlayer.stats[k];
+                            }
+                        };
+                        self.gui.bindings[k].addEventListener('keyup', callbackFunc);
+                        self.gui.bindings[k].addEventListener('keydown', callbackFunc);
+                        self.gui.bindings[k].addEventListener('mouseup', callbackFunc);
+                    }
+
+                    self.gui.bindings.button_start.addEventListener('click', function() {
+                        self.state = STATE_PLAY;
+                        self.loadMap('home');
+                    });
+                });
+            }
+            break;
+
+            case STATE_PLAY:
+            {
+                let that = this;
+
+                this.setGameboardVisibility(true);
+
+                this.loadGui('gamebar').then(function(totalbindings) {
+                    self.gui.update = function() {
+                        let binds = self.gui.bindings;
+
+                        binds.value_hp.innerText = self.currentPlayer.health;
+                        binds.value_total_hp.innerText = self.currentPlayer.totalHealth;
+                        binds.value_hp_bar.style.backgroundSize = `auto ${parseInt(self.currentPlayer.health / self.currentPlayer.totalHealth * 100)}%`;
+                        
+                        binds.value_mana.innerText = self.currentPlayer.magic;
+                        binds.value_total_mana.innerText = self.currentPlayer.totalMagic;
+                        binds.value_mana_bar.style.backgroundSize = `auto ${parseInt(self.currentPlayer.magic / self.currentPlayer.totalMagic * 100)}%`;
+
+                        binds.display_one_value.innerText = `₻${self.currentPlayer.money}`;
+                        binds.display_two_value.innerText = `0`;
+                        binds.display_three_value.innerText = '100%';
+
+                        while (binds.console.firstChild) {
+                            binds.console.removeChild(binds.console.firstChild);
+                        }
+                        for (let i = 0; i < that.messages.length; i++) {
+                            let newMsg = document.createElement('div');
+                            newMsg.innerText = that.messages[i];
+                            binds.console.appendChild(newMsg);
+                        }
+                        binds.console.scrollTop = binds.console.scrollHeight;
+                    };
+                    self.gui.bindings.button_inventory.addEventListener('click', function() { that.toggleInventoryView() });
+                    self.gui.bindings.button_restart.addEventListener('click', function() { if (confirm("Are you sure you want to restart your game?")) { that.stateClear(); that.stateSet(STATE_NEWGAME); } });
+                    self.draw();
+                });
+            }
+            break;
+
+            case STATE_INVENTORY:
+            {
+                let that = this;
+
+                this.setGameboardVisibility(false);
+
+                this.loadGui('inventory').then(function(totalbindings) {
+                    self.gui.bindings.button_close.addEventListener('click', function() { that.toggleInventoryView(); });
+                    self.gui.bindings.name.innerText = self.currentPlayer.name;
+                    let playerInventory = self.currentPlayer.inventoryGet;
+                    for (let k in playerInventory) {
+                        let listItem = document.createElement('li');
+                        listItem.innerText = `${k}:${self.currentPlayer.inventoryGet[k]}`;
+                        console.log(self.gui.bindings.inventory);
+                        self.gui.bindings.inventory.appendChild(listItem);
+                    }
+                });
+            }
+            break;
+        }
+    }
+
     stateSave() {
         if (this.state === STATE_UNINITIALIZED) {
             return;
         }
         let stateObj = {};
         stateObj.player = this.currentPlayer;
-        stateObj.map = this.currentMap;
+        stateObj.maps = [];
+        for (let mapName in this.maps) {
+            const map = this.maps[mapName];
+            const mapStr = map.serialize();
+            stateObj.maps.push(mapStr);
+        }        
+        stateObj.currentMap = this.currentMap;
         stateObj.state = this.state.toString();
         stateObj.messages = this.messages;
         localStorage.state = JSON.stringify(stateObj);
@@ -630,20 +659,29 @@ class Game {
 
     stateLoad() {
         if (localStorage.length == 0 || localStorage.state === undefined) {
-            this.setState(STATE_NEWGAME);
+            this.stateSet(STATE_NEWGAME);
             return;
         }
 
         let stateObj = JSON.parse(localStorage.state);
-        this.currentMap = stateObj.map;
+        this.maps = {};
+        for (let mapIndex = 0; mapIndex < stateObj.maps.length; mapIndex++) {
+            let map = Map.Deserialize(stateObj.maps[mapIndex]);
+            let mapName = map.name;
+            this.maps[mapName] = map;
+        }
+        this.currentMap = stateObj.currentMap;
         this.currentPlayer = Player.Load(stateObj.player);
         this.messages = stateObj.messages;
-        this.setState(Utils.StringToState(stateObj.state));
+        this.stateSet(Utils.StringToState(stateObj.state));
         
         return true;
     }
 
     stateClear() {
+        this.currentMap = null;
+        this.messages = [];
+        this.maps = this.dmaps;
         delete localStorage.state;
     }
 
@@ -695,7 +733,7 @@ class Game {
             let jsonData = fileLoadEvent.result;
             if (jsonData.type !== undefined && jsonData.type === 'map') {
                 let loadedMap = Map.ParseJson(jsonData);
-                this.maps[loadedMap.name] = loadedMap;
+                this.dmaps[loadedMap.name] = loadedMap;
             } else if (jsonData.type !== undefined && jsonData.type === 'items') {
                 let itemsList = jsonData.items;
                 for (let i = 0; i < itemsList.length; i++) {
