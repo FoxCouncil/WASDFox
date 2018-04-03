@@ -46,6 +46,9 @@ class Map {
         newMapObj.playerPos = mapObj.playerPos;
         newMapObj.layers = mapObj.layers;
         newMapObj.triggers = mapObj.triggers;
+        for (let idx = 0; idx < mapObj.agents.length; idx++) {
+            newMapObj.agents.push(Agent.Deserialize(mapObj.agents[idx]));
+        }
         return newMapObj;
     }
     
@@ -63,6 +66,7 @@ class Map {
         };
 
         this.triggers = [];
+        this.agents = [];
     }
 
     serialize() {

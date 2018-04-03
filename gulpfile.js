@@ -31,7 +31,7 @@ gulp.task('assets-items', function() {
 });
 
 gulp.task('scripts', function() {
-  return gulp.src(['src/js/utils.js', 'src/js/stats.js', 'src/js/map.js', 'src/js/item.js', 'src/js/player.js', 'src/js/game.js', 'src/js/main.js'])
+  return gulp.src(['src/js/utils.js', 'src/js/stats.js', 'src/js/map.js', 'src/js/item.js', 'src/js/player.js', 'src/js/agent.js', 'src/js/game.js', 'src/js/main.js'])
     .pipe(concatS('game.js'))
     .pipe(gulp.dest('bin/'));
 });

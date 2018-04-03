@@ -13,6 +13,7 @@ class Game {
         this.currentMap = null;
         this.currentPlayer = null;
         this.currentPlayerImage = new createjs.Bitmap(`art/spritefox-male.png`);
+        this.currentEnemyImage = new createjs.Bitmap('art/spriteskeleton.png');
 
         this.containerMap = new createjs.Container();
         this.containerPlayer = new createjs.Container();
@@ -79,6 +80,10 @@ class Game {
         this.stage.canvas.height = height;
     }
 
+    get playMap() {
+        return this.maps[this.currentMap];
+    }
+
     tick() {
         this.statsView.begin();
 
@@ -118,7 +123,7 @@ class Game {
                     }
                     this.currentMap = this.mapToLoad;
                     delete this.mapToLoad;
-                    const map = this.maps[this.currentMap];
+                    const map = this.playMap;
                     if (map.playerPos.x == -1 && map.playerPos.y == -1) {
                         map.playerPos.x = map.startPos.x;
                         map.playerPos.y = map.startPos.y;
@@ -201,7 +206,7 @@ class Game {
             return;
         }
 
-        let map = this.maps[this.currentMap];
+        let map = this.playMap;
         let layers = map.layers;
 
         this.containerMap.removeAllChildren();
@@ -218,6 +223,19 @@ class Game {
 
             let drawOffsetX = centerX - map.playerPos.x;
             let drawOffsetY = centerY - map.playerPos.y;
+
+            // Draw Agents
+            let aEnemy = new createjs.Container();
+            aEnemy.addChild(this.currentEnemyImage.clone());
+
+            let localAgents = {};
+            if (map.agents.length > 0) {
+                for (let idx = 0; idx < map.agents.length; idx++) {
+                    let enemy = map.agents[idx];
+                    enemy.tick(this, map);
+                    localAgents[`${enemy.pos.x}x${enemy.pos.y}`] = enemy;                   
+                }
+            }
 
             let tile = new createjs.Sprite(this.tileset);
 
@@ -282,6 +300,17 @@ class Game {
                             this.containerMap.addChild(aTile);
                             tileTotal++;
                         }
+                        
+                        let agentId = `${alterX}x${alterY}`;
+                        let agentObj = localAgents[agentId];
+                        if (agentObj != null) {
+                            let aTile = aEnemy.clone(true);
+                            aTile.width = 32;
+                            aTile.height = 32;
+                            aTile.x = posX;
+                            aTile.y = posY;
+                            this.containerMap.addChild(aTile);
+                        }
 
                         if (this.debugContainer.visible) {
                             var textPos = new createjs.Text(`${x}x${y}\n${alterX}x${alterY}`, "10px Courier New", "#000");
@@ -324,6 +353,7 @@ class Game {
             }
 
             this.totalDrawnTiles = tileTotal;
+
             this.debugMessage('TILES', this.totalDrawnTiles);
         }
     }
@@ -340,10 +370,6 @@ class Game {
 
     showMessage(msg) {
         this.messages.push(msg);
-        /* let newMsg = document.createElement('div');
-        newMsg.innerText = msg;
-        this.statusBar.appendChild(newMsg);
-        this.statusBar.scrollTop = this.statusBar.scrollHeight; */
     }
 
     loadMap(name) {
@@ -364,12 +390,27 @@ class Game {
         return this.items.find(x => x.id === id);
     }
 
+    enemySpawn() {
+        let newEnemy = new Agent();
+
+        newEnemy.pos.x = this.playMap.playerPos.x + 1;
+        newEnemy.pos.y = this.playMap.playerPos.y + 1;
+
+        this.playMap.agents.push(newEnemy);
+        this.draw();
+    }
+    
+    agentsClear() {
+        this.playMap.agents = [];
+        this.draw();
+    }
+
     movePlayer(x, y) {
         if (this.state != STATE_PLAY) {
             return;
         }
 
-        const map = this.maps[this.currentMap];
+        const map = this.playMap;
 
         const newX = map.playerPos.x + x; // x is the direction moving on that axis
         const newY = map.playerPos.y + y; // y is the direction moving on that axis
@@ -498,6 +539,12 @@ class Game {
             }
             break;
 
+            case 32:
+            {
+                this.draw();
+            }
+            break;
+
             case 187:
             {
                 this.toggleDebugView();
@@ -571,6 +618,7 @@ class Game {
                     }
 
                     self.gui.bindings.button_start.addEventListener('click', function() {
+                        self.gui.bindings.button_start.disabled = true;
                         self.state = STATE_PLAY;
                         self.loadMap('home');
                     });
@@ -668,7 +716,7 @@ class Game {
         for (let mapIndex = 0; mapIndex < stateObj.maps.length; mapIndex++) {
             let map = Map.Deserialize(stateObj.maps[mapIndex]);
             let mapName = map.name;
-            this.maps[mapName] = map;
+            this.maps[mapName] = map;            
         }
         this.currentMap = stateObj.currentMap;
         this.currentPlayer = Player.Load(stateObj.player);
