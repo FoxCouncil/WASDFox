@@ -1,0 +1,10 @@
+{
+    "items": [
+        {
+            "name": "Sword",
+            "type": "weapon",
+            "id": "14",
+            "value": "10"
+        }
+    ]
+}

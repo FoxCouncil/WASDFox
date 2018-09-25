@@ -51,25 +51,29 @@ class Player {
         return ((this.stats.luck + this.stats.sexiness) / 5) * this.level;
     }
 
+    get totalMoney() {
+        return (this.money / 100).toFixed(2);
+    }
+
     get inventoryGet() {
         return JSON.parse(JSON.stringify(this.inventory));
     }
 
     inventoryAddItem(item, qty=1) {
-        if (this.inventory[item] === undefined) {
-            this.inventory[item] = qty;
+        if (this.inventory[item.id] === undefined) {
+            this.inventory[item.id] = qty;
         } else {
-            this.inventory[item] += qty;
+            this.inventory[item.id] += qty;
         }
     }
 
     inventoryRemoveItem(item, qty=1) {
-        if (this.inventory[item] === undefined || this.inventory[item] < qty) {
+        if (this.inventory[item.id] === undefined || this.inventory[item.id] < qty) {
             return false;
-        } else if (this.inventory[item] === qty) {
-            delete this.inventory[item];
+        } else if (this.inventory[item.id] === qty) {
+            delete this.inventory[item.id];
         } else {
-            this.inventory[item] -= qty;
+            this.inventory[item.id] -= qty;
         }
         return true;
     }

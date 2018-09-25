@@ -5,9 +5,9 @@ class Agent {
     }
 
     static Deserialize(data) {
-        let newEnemy = new Agent(data.name, data.tile);
-        newEnemy.pos = data.pos;
-        return newEnemy;
+        let newAgent = new Agent(data.name, data.tile, data.friendly, data.agro, data.a);
+        newAgent.pos = data.pos;
+        return newAgent;
     }
 
     constructor(name='Scary Dave', tile='skeleton', friendly=false, agro=true, agroDistanceMax=5) {
@@ -23,7 +23,8 @@ class Agent {
     tick(game, mapData) {
         let distanceToPlayer = Math.floor(Math.hypot(mapData.playerPos.x - this.pos.x, mapData.playerPos.y - this.pos.y));
         if (distanceToPlayer == 1) {
-            // 'Attack' the player
+            // TODO: 'Attack' the player
+            console.log('Attacking the player! ' + Math.random());
         } else if (distanceToPlayer > 1 && distanceToPlayer < 5) {
             // Move 'towards' player
             let distractRoll = Utils.RandomNumber(1, 2);
@@ -55,9 +56,5 @@ class Agent {
                 }
             }
         }
-
-        
-
-        console.log('Distance to player is: ' + distanceToPlayer);
     }
 }

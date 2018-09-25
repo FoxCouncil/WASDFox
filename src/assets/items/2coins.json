@@ -2,6 +2,7 @@
     "items": [
         {
             "name": "Coins (2)",
+            "type": "money",
             "id": "10",
             "value": "2"
         }

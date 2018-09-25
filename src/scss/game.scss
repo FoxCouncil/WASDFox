@@ -206,20 +206,23 @@ canvas {
         padding-left: 1px;
 
         font-size: 12px;
-        line-height: 15px;
+        line-height: 14px;
 
         td {
             color: white;
 
             &.numerical-display {
                 font-family: 'Courier New', Courier, monospace;
+                font-size: 16px;
+                line-height: 16px;
                 width: 100%;
                 background-color: #000;
                 padding-left: 4px;
+                max-height: 30px;
             }
 
             &.vertical-bars {
-                height: 94px;
+                height: 91px;
                 min-width: 3rem;
                 text-align: center;
                 vertical-align: bottom;
@@ -250,7 +253,8 @@ canvas {
     .console {
         flex-grow: 1;
 
-        background-color: #EEE;
+        background-color: #AAA;
+        color: #000;
 
         height: 100%;
 
@@ -281,7 +285,7 @@ canvas {
 
         border-left: .1rem solid black;
         
-        padding-top: 4px;
+        padding-top: 2px;
 
         a {
             &.button {
@@ -313,6 +317,15 @@ canvas {
     h2 {
         margin-top: 0;
         border-bottom: 1px solid #000;
+    }
+
+    &.inventory {
+        #money {
+            margin-left: 2rem;
+            padding: .1rem .7rem;
+            border: .3rem double #040;
+            display: inline-block;
+        }
     }
 }
 

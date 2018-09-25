@@ -9,7 +9,9 @@ class Game {
         this.dmaps = {};
         this.items = [];
         this.messages = [];
+        this.activeAgents = {};
 
+        this.firstDraw = true;
         this.currentMap = null;
         this.currentPlayer = null;
         this.currentPlayerImage = new createjs.Bitmap(`art/spritefox-male.png`);
@@ -228,12 +230,14 @@ class Game {
             let aEnemy = new createjs.Container();
             aEnemy.addChild(this.currentEnemyImage.clone());
 
-            let localAgents = {};
+            this.activeAgents = {};
             if (map.agents.length > 0) {
                 for (let idx = 0; idx < map.agents.length; idx++) {
                     let enemy = map.agents[idx];
-                    enemy.tick(this, map);
-                    localAgents[`${enemy.pos.x}x${enemy.pos.y}`] = enemy;                   
+                    if (!this.firstDraw) {
+                        enemy.tick(this, map);
+                    }
+                    this.activeAgents[`${enemy.pos.x}x${enemy.pos.y}`] = enemy;                   
                 }
             }
 
@@ -302,7 +306,7 @@ class Game {
                         }
                         
                         let agentId = `${alterX}x${alterY}`;
-                        let agentObj = localAgents[agentId];
+                        let agentObj = this.activeAgents[agentId];
                         if (agentObj != null) {
                             let aTile = aEnemy.clone(true);
                             aTile.width = 32;
@@ -405,7 +409,27 @@ class Game {
         this.draw();
     }
 
-    movePlayer(x, y) {
+    playerAddItem(item) {
+        switch (item.type) {
+            case "money": {
+                this.currentPlayer.money += parseInt(item.value);
+                this.showMessage(`You pick up ${item.name}`);
+            }
+            break;
+            
+            default: {
+                this.currentPlayer.inventoryAddItem(item);
+                this.showMessage(`You pick up ${item.name}`);
+            }
+            break;
+        }        
+    }
+
+    playerDamage(agent) {
+
+    }
+
+    playerMove(x, y) {
         if (this.state != STATE_PLAY) {
             return;
         }
@@ -433,16 +457,21 @@ class Game {
             let item = this.getItem(objectCheck);
             if (item != null) {
                 map.layers.object[realId] = 0;
-                this.showMessage(`You pick up ${item.name}`);
+                this.playerAddItem(item);
             }
         }
 
-        if (map.playerPos.x + x >= 0 && map.playerPos.x + x < map.width) {
-            map.playerPos.x += x;
-        }
+        let enemyAgent = this.activeAgents[`${newX}x${newY}`];
+        if (enemyAgent != null) {
+            console.log('Curb stomped: ' + enemyAgent.name);
+        } else {
+            if (map.playerPos.x + x >= 0 && map.playerPos.x + x < map.width) {
+                map.playerPos.x += x;
+            }
 
-        if (map.playerPos.y + y >= 0 && map.playerPos.y + y < map.height) {
-            map.playerPos.y += y;
+            if (map.playerPos.y + y >= 0 && map.playerPos.y + y < map.height) {
+                map.playerPos.y += y;
+            }
         }
 
         this.draw();
@@ -504,7 +533,7 @@ class Game {
             case 87:
             {
                 // this.showMessage(`${this.player.name} walks North`);
-                this.movePlayer(0, -1);
+                this.playerMove(0, -1);
             }
             break;
 
@@ -512,7 +541,7 @@ class Game {
             case 65:
             {
                 // this.showMessage(`${this.player.name} walks West`);
-                this.movePlayer(-1, 0);
+                this.playerMove(-1, 0);
             }
             break;
 
@@ -520,7 +549,7 @@ class Game {
             case 83:
             {
                 // this.showMessage(`${this.player.name} walks South`);
-                this.movePlayer(0, 1);
+                this.playerMove(0, 1);
             }
             break;
 
@@ -528,7 +557,7 @@ class Game {
             case 68:
             {
                 // this.showMessage(`${this.player.name} walks East`);
-                this.movePlayer(1, 0);
+                this.playerMove(1, 0);
             }
             break;
 
@@ -644,7 +673,7 @@ class Game {
                         binds.value_total_mana.innerText = self.currentPlayer.totalMagic;
                         binds.value_mana_bar.style.backgroundSize = `auto ${parseInt(self.currentPlayer.magic / self.currentPlayer.totalMagic * 100)}%`;
 
-                        binds.display_one_value.innerText = `₻${self.currentPlayer.money}`;
+                        binds.display_one_value.innerText = `₻${self.currentPlayer.totalMoney}`;
                         binds.display_two_value.innerText = `0`;
                         binds.display_three_value.innerText = '100%';
 
@@ -661,24 +690,24 @@ class Game {
                     self.gui.bindings.button_inventory.addEventListener('click', function() { that.toggleInventoryView() });
                     self.gui.bindings.button_restart.addEventListener('click', function() { if (confirm("Are you sure you want to restart your game?")) { that.stateClear(); that.stateSet(STATE_NEWGAME); } });
                     self.draw();
+                    self.firstDraw = false;
                 });
             }
             break;
 
             case STATE_INVENTORY:
             {
-                let that = this;
-
                 this.setGameboardVisibility(false);
 
                 this.loadGui('inventory').then(function(totalbindings) {
-                    self.gui.bindings.button_close.addEventListener('click', function() { that.toggleInventoryView(); });
+                    self.gui.bindings.button_close.addEventListener('click', function() { self.toggleInventoryView(); });
                     self.gui.bindings.name.innerText = self.currentPlayer.name;
+                    self.gui.bindings.money.innerText = `₻${self.currentPlayer.totalMoney}`;
                     let playerInventory = self.currentPlayer.inventoryGet;
                     for (let k in playerInventory) {
+                        let item = self.getItem(parseInt(k));
                         let listItem = document.createElement('li');
-                        listItem.innerText = `${k}:${self.currentPlayer.inventoryGet[k]}`;
-                        console.log(self.gui.bindings.inventory);
+                        listItem.innerText = `${item.name}:${self.currentPlayer.inventoryGet[k]}`;
                         self.gui.bindings.inventory.appendChild(listItem);
                     }
                 });
