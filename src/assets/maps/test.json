@@ -41,9 +41,9 @@
                 {
                  "height":32,
                  "id":1,
-                 "name":"map_home",
+                 "name":"home",
                  "rotation":0,
-                 "type":"triggerbox",
+                 "type":"map",
                  "visible":true,
                  "width":32,
                  "x":128,

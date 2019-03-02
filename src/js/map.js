@@ -1,11 +1,23 @@
 class Map {
     static ParseJson(data) {
-        if (typeof(data) !== 'object' || data.properties === undefined || data.properties.map_name === undefined) {
+        if (typeof(data) !== 'object' || data.properties === undefined) {
             return null;
         }
-        let newMap = new Map(data.properties.map_name, data.width, data.height);
-        if (data.properties.start_pos !== undefined && data.properties.start_pos.includes(',')) {
-            let startPosData = data.properties.start_pos.split(',');
+        
+        let mapName = "";
+        let startPos = "";
+
+        if (data.version < 1.2) {
+            mapName = data.properties.map_name;
+            startPos = data.properties.start_pos;
+        } else {
+            mapName = data.properties.find(function(el) { return el.name == "map_name" }).value;
+            startPos = data.properties.find(function(el) { return el.name == "start_pos" }).value;
+        }
+
+        let newMap = new Map(mapName, data.width, data.height);
+        if (startPos !== "" && startPos.includes(',')) {
+            let startPosData = startPos.split(',');
             newMap.startPos.x = parseInt(startPosData[0]);
             newMap.startPos.y = parseInt(startPosData[1]);
             if (newMap.startPos.x === NaN || newMap.startPos.y === NaN) {
@@ -21,11 +33,11 @@ class Map {
             } else if (layer.type == 'objectgroup') {
                 for (var t = 0; t < layer.objects.length; t++) {
                     let tObj = layer.objects[t];
-                    let tW = tObj.height / game.tileSize;
-                    let tH = tObj.width / game.tileSize;
-                    let tX = tObj.x / game.tileSize;
-                    let tY = tObj.y / game.tileSize;
-                    let tCallbackStr = `game.handleTrigger('${tObj.name}')`;
+                    let tW = Math.ceil(tObj.height / game.tileSize);
+                    let tH = Math.ceil(tObj.width / game.tileSize);
+                    let tX = Math.ceil(tObj.x / game.tileSize);
+                    let tY = Math.ceil(tObj.y / game.tileSize);
+                    let tCallbackStr = `game.handleTrigger('${tObj.type}', '${tObj.name}')`;
 
                     for (var tWIdx = 0; tWIdx < tW; tWIdx++) {
                          for (var tHIdx = 0; tHIdx < tH; tHIdx++) {

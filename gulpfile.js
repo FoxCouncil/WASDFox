@@ -1,62 +1,69 @@
-var gulp = require('gulp');  
-var sass = require('gulp-sass');
-var clean = require('gulp-clean');
-var merge = require('gulp-merge-json');
-var concat = require('gulp-concat');
-var concatS = require('gulp-concat-sourcemap');
-var connect = require('gulp-connect');
-var livereload = require('gulp-livereload');
+const { series, parallel, src, dest, watch } = require('gulp');
 
-gulp.task('webserver', function() {
+const sass = require('gulp-sass');
+const clean = require('gulp-clean');
+const merge = require('gulp-merge-json');
+const concat = require('gulp-concat');
+const concatS = require('gulp-concat-sourcemap');
+const connect = require('gulp-connect');
+
+function cleanBin() {
+  return src('bin', {read: false, allowEmpty: true}).pipe(clean());
+}
+
+function copyFavicon() {
+  return src('src/assets/favicon.ico').pipe(dest('bin'));
+}
+
+function assetsArt() {
+  return src('src/assets/**/*.png').pipe(dest('bin'));
+}
+
+function assetsMaps() {
+  return src('src/assets/maps/*.json').pipe(dest('bin/maps'));
+}
+
+function assetsItems() {
+  return src('src/assets/items/*.json').pipe(merge({ startObj: { type: "items" }, concatArrays: true, fileName: "items.json" })).pipe(dest('bin/'));
+}
+
+function js() {
+  return src([
+    'src/js/utils.js', 
+    'src/js/stats.js', 
+    'src/js/map.js', 
+    'src/js/item.js', 
+    'src/js/player.js', 
+    'src/js/agent.js', 
+    'src/js/game.js', 
+    'src/js/main.js'
+  ]).pipe(concat('game.js')).pipe(dest('bin/'));
+}
+
+function css() {
+  return src('./src/scss/*.scss').pipe(sass().on('error', sass.logError)).pipe(dest('bin'));
+}
+
+function html(done) {
+  return src('src/*.html').pipe(dest('bin'));
+}
+
+function server(done) {
   connect.server({
-      livereload: true,
-      root: 'bin'
+    livereload: true,
+    root: 'bin'
   });
-});
+  done();
+}
 
-gulp.task('favicon', function() {
-    return gulp.src('src/assets/favicon.ico').pipe(gulp.dest('bin'));
-});
+function watcher(done) {
+  watch('./src/**/*.*', build);
+  watch('./bin/**/*.*').on('change', function() { src('bin/').pipe(connect.reload()); });
+  done();
+}
 
-gulp.task('assets-art', function() {
-    return gulp.src('src/assets/**/*.png').pipe(gulp.dest('bin'));
-});
+const build = parallel(copyFavicon, assetsArt, assetsMaps, assetsItems, js, css, html);
 
-gulp.task('assets-maps', function() {
-    return gulp.src('src/assets/maps/*.json').pipe(gulp.dest('bin/maps'));
-});
-
-gulp.task('assets-items', function() {
-    return gulp.src('src/assets/items/*.json').pipe(merge({ startObj: { type: "items" }, concatArrays: true, fileName: "items.json" })).pipe(gulp.dest('bin/'));
-});
-
-gulp.task('scripts', function() {
-  return gulp.src(['src/js/utils.js', 'src/js/stats.js', 'src/js/map.js', 'src/js/item.js', 'src/js/player.js', 'src/js/agent.js', 'src/js/game.js', 'src/js/main.js'])
-    .pipe(concatS('game.js'))
-    .pipe(gulp.dest('bin/'));
-});
-
-gulp.task('styles', function () {
-  return gulp.src('./src/scss/*.scss')
-    .pipe(sass().on('error', sass.logError))
-    .pipe(gulp.dest('bin'));
-});
-
-gulp.task('html', function() {
-    return gulp.src('src/*.html').pipe(gulp.dest('bin'));
-})
-
-gulp.task('clean', function() {
-    return gulp.src('bin', {read: false}).pipe(clean());
-});
-
-gulp.task('build', ['favicon', 'assets-art', 'assets-maps', 'assets-items', 'html', 'scripts', 'styles']);
-
-gulp.task('watch', ['build'], function() {
-  gulp.watch('./src/**/*.*', ['build']);
-  gulp.watch('./bin/**/*.*').on('change', function(file) {
-	gulp.src(file.path).pipe(connect.reload());
-  });
-});
-
-gulp.task('default', ['webserver', 'build', 'watch']);
+exports.build = build;
+exports.clean = cleanBin;
+exports.default = series(cleanBin, build, server, watcher);

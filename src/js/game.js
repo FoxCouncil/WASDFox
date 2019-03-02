@@ -495,22 +495,20 @@ class Game {
         this.draw();
     }
 
-    handleTrigger(triggerName) {
-        switch (triggerName) {
-            case "map_test": {
-                game.loadMap('test');
+    handleTrigger(triggerType, triggerArgs) {
+        switch (triggerType) {
+            case 'map': return game.handleTriggerMap(triggerArgs);
+            case 'message': {
+                alert(triggerArgs);
                 return true;
             }
-            break;
-            case "map_home": {
-                game.loadMap('home');
+            case 'store': {
+                console.log('WOWEEEEEEE');
                 return true;
             }
-            break;
-
             default: {
                 if (this.debugContainer.visible) {
-                    console.log(`TRIGGER(${triggerName})`);
+                    console.log(`TRIGGER(${triggerType}, ${triggerArgs})`);
                 }
             }
             break;
@@ -518,6 +516,22 @@ class Game {
 
         return false;
     }
+
+    handleTriggerMap(mapName) {
+        switch(mapName) {
+            case "test": {
+                game.loadMap('test');
+                return true;
+            }
+            case "home": {
+                game.loadMap('home');
+                return true;
+            }
+        }
+
+        return false;
+    }
+    
 
     handleKeyboard(keyEvent) {
         switch (keyEvent.keyCode) {
@@ -648,7 +662,7 @@ class Game {
 
                     self.gui.bindings.button_start.addEventListener('click', function() {
                         self.gui.bindings.button_start.disabled = true;
-                        self.state = STATE_PLAY;
+                        self.stateSet(STATE_PLAY);
                         self.loadMap('home');
                     });
                 });
@@ -731,16 +745,17 @@ class Game {
         stateObj.currentMap = this.currentMap;
         stateObj.state = this.state.toString();
         stateObj.messages = this.messages;
-        localStorage.state = JSON.stringify(stateObj);
+        localStorage.setItem('state', JSON.stringify(stateObj));
     }
 
     stateLoad() {
-        if (localStorage.length == 0 || localStorage.state === undefined) {
+        var ls = localStorage.getItem('state');
+        if (ls === null) {
             this.stateSet(STATE_NEWGAME);
             return;
         }
 
-        let stateObj = JSON.parse(localStorage.state);
+        let stateObj = JSON.parse(ls);
         this.maps = {};
         for (let mapIndex = 0; mapIndex < stateObj.maps.length; mapIndex++) {
             let map = Map.Deserialize(stateObj.maps[mapIndex]);
@@ -758,8 +773,8 @@ class Game {
     stateClear() {
         this.currentMap = null;
         this.messages = [];
-        this.maps = this.dmaps;
-        delete localStorage.state;
+        this.maps = this.structuredClone(this.dmaps);
+        localStorage.removeItem('state');
     }
 
     loadGui(name) {
@@ -810,6 +825,10 @@ class Game {
             let jsonData = fileLoadEvent.result;
             if (jsonData.type !== undefined && jsonData.type === 'map') {
                 let loadedMap = Map.ParseJson(jsonData);
+                if (loadedMap === null) {
+                    console.error('Unable to parse map: ' + file.src);
+                    return;
+                }
                 this.dmaps[loadedMap.name] = loadedMap;
             } else if (jsonData.type !== undefined && jsonData.type === 'items') {
                 let itemsList = jsonData.items;
@@ -820,6 +839,14 @@ class Game {
             }
         }
     }
+
+    structuredClone(obj) {
+        const oldState = history.state;
+        history.replaceState(obj, null);
+        const clonedObj = history.state;
+        history.replaceState(oldState, null);
+        return clonedObj;
+    };
 
     debugMessage(who, what, extra = '') {
         if (this.debugContainer.visible) {
