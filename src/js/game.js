@@ -6,7 +6,7 @@ class Game {
 
         this.gui = {};
         this.maps = {};
-        this.dmaps = {};
+        this.smaps = {};
         this.items = [];
         this.messages = [];
         this.activeAgents = {};
@@ -82,10 +82,6 @@ class Game {
         this.stage.canvas.height = height;
     }
 
-    get playMap() {
-        return this.maps[this.currentMap];
-    }
-
     tick() {
         this.statsView.begin();
 
@@ -109,7 +105,7 @@ class Game {
                 this.containerPlayer.visible = false;
                 let tilesToAnimate = Math.floor(this.totalDrawnTiles / tilesDivisorPerFrame);
                 if (this.containerMap.numChildren > 0) {
-                    for (var idx = 0; idx < tilesToAnimate; idx++) {
+                    for (let idx = 0; idx < tilesToAnimate; idx++) {
                         let rndTile = this.containerMap.getChildAt(Utils.RandomNumber(0, this.containerMap.numChildren));
                         if (rndTile !== undefined) {
                             rndTile.alpha -= 0.33;
@@ -125,7 +121,7 @@ class Game {
                     }
                     this.currentMap = this.mapToLoad;
                     delete this.mapToLoad;
-                    const map = this.playMap;
+                    let map = this.maps[this.currentMap];
                     if (map.playerPos.x == -1 && map.playerPos.y == -1) {
                         map.playerPos.x = map.startPos.x;
                         map.playerPos.y = map.startPos.y;
@@ -141,7 +137,7 @@ class Game {
             {
                 let tilesToAnimate = Math.floor(this.totalDrawnTiles / tilesDivisorPerFrame);
                 if (this.mapToShowIds.length > 0) {
-                    for (var idx = 0; idx < tilesToAnimate; idx++) {
+                    for (let idx = 0; idx < tilesToAnimate; idx++) {
                         let rndId = Utils.RandomNumber(0, this.mapToShowIds.length);
                         let rndTileId = this.mapToShowIds[rndId];
                         let rndTile = this.containerMap.getChildAt(rndTileId);
@@ -208,7 +204,7 @@ class Game {
             return;
         }
 
-        let map = this.playMap;
+        let map = this.maps[this.currentMap];
         let layers = map.layers;
 
         this.containerMap.removeAllChildren();
@@ -290,6 +286,7 @@ class Game {
                             tileTotal++;
                         }
 
+                        if (aTileId === 5452) { debugger; }
                         if (layers.object[aTileId] != undefined && layers.object[aTileId] != 0) {
                             let aTile = tile.clone();
                             aTile.x = posX;
@@ -317,7 +314,7 @@ class Game {
                         }
 
                         if (this.debugContainer.visible) {
-                            var textPos = new createjs.Text(`${x}x${y}\n${alterX}x${alterY}`, "10px Courier New", "#000");
+                            let textPos = new createjs.Text(`${x}x${y}\n${alterX}x${alterY}`, "10px Courier New", "#000");
                             textPos.x = posX + 1;
                             textPos.y = posY + 1;
 
@@ -326,7 +323,7 @@ class Game {
                             }                            
 
                             if (map.triggers[aTileId] != null) {
-                                var textTrigger = new createjs.Text('T', "40px Arial", "#F0F");
+                                let textTrigger = new createjs.Text('T', "40px Arial", "#F0F");
                                 textTrigger.x = posX;
                                 textTrigger.y = posY;
 
@@ -334,7 +331,7 @@ class Game {
                                     this.containerMap.addChild(textTrigger);
                                 }
                             } else if (map.layers.object[aTileId] != 0) {
-                                var textTrigger = new createjs.Text('O', "32px Arial", "#F0F");
+                                let textTrigger = new createjs.Text('O', "32px Arial", "#F0F");
                                 textTrigger.x = posX;
                                 textTrigger.y = posY;
 
@@ -396,16 +393,17 @@ class Game {
 
     enemySpawn() {
         let newEnemy = new Agent();
+        let playMap = this.maps[this.currentMap];
 
-        newEnemy.pos.x = this.playMap.playerPos.x + 1;
-        newEnemy.pos.y = this.playMap.playerPos.y + 1;
+        newEnemy.pos.x = playMap.playerPos.x + 1;
+        newEnemy.pos.y = playMap.playerPos.y + 1;
 
-        this.playMap.agents.push(newEnemy);
+        this.maps[this.currentMap].agents.push(newEnemy);
         this.draw();
     }
     
     agentsClear() {
-        this.playMap.agents = [];
+        this.maps[this.currentMap].agents = [];
         this.draw();
     }
 
@@ -434,7 +432,7 @@ class Game {
             return;
         }
 
-        const map = this.playMap;
+        let map = this.maps[this.currentMap];
 
         const newX = map.playerPos.x + x; // x is the direction moving on that axis
         const newY = map.playerPos.y + y; // y is the direction moving on that axis
@@ -625,8 +623,10 @@ class Game {
 
                 this.setGameboardVisibility(false);
 
+                this.containerMap.removeAllChildren();
+
                 this.loadGui('newgame').then(function(totalbindings) {
-                    for (var i = 0; i < Player.Stats.length; i++) {
+                    for (let i = 0; i < Player.Stats.length; i++) {
                         let statName = Player.Stats[i];
                         let statLabel = document.createElement('label');
                         let statSpan = document.createElement('span');
@@ -671,8 +671,6 @@ class Game {
 
             case STATE_PLAY:
             {
-                let that = this;
-
                 this.setGameboardVisibility(true);
 
                 this.loadGui('gamebar').then(function(totalbindings) {
@@ -694,15 +692,15 @@ class Game {
                         while (binds.console.firstChild) {
                             binds.console.removeChild(binds.console.firstChild);
                         }
-                        for (let i = 0; i < that.messages.length; i++) {
+                        for (let i = 0; i < self.messages.length; i++) {
                             let newMsg = document.createElement('div');
-                            newMsg.innerText = that.messages[i];
+                            newMsg.innerText = self.messages[i];
                             binds.console.appendChild(newMsg);
                         }
                         binds.console.scrollTop = binds.console.scrollHeight;
                     };
-                    self.gui.bindings.button_inventory.addEventListener('click', function() { that.toggleInventoryView() });
-                    self.gui.bindings.button_restart.addEventListener('click', function() { if (confirm("Are you sure you want to restart your game?")) { that.stateClear(); that.stateSet(STATE_NEWGAME); } });
+                    self.gui.bindings.button_inventory.addEventListener('click', function() { self.toggleInventoryView() });
+                    self.gui.bindings.button_restart.addEventListener('click', function() { if (confirm("Are you sure you want to restart your game?")) { self.stateClear(); self.stateSet(STATE_NEWGAME); } });
                     self.draw();
                     self.firstDraw = false;
                 });
@@ -738,8 +736,8 @@ class Game {
         stateObj.player = this.currentPlayer;
         stateObj.maps = [];
         for (let mapName in this.maps) {
-            const map = this.maps[mapName];
-            const mapStr = map.serialize();
+            let map = this.maps[mapName];
+            let mapStr = map.serialize();
             stateObj.maps.push(mapStr);
         }        
         stateObj.currentMap = this.currentMap;
@@ -749,7 +747,7 @@ class Game {
     }
 
     stateLoad() {
-        var ls = localStorage.getItem('state');
+        let ls = localStorage.getItem('state');
         if (ls === null) {
             this.stateSet(STATE_NEWGAME);
             return;
@@ -773,7 +771,11 @@ class Game {
     stateClear() {
         this.currentMap = null;
         this.messages = [];
-        this.maps = this.structuredClone(this.dmaps);
+        this.maps = {};
+        for (let mapName in this.smaps) {
+            let mapData = JSON.parse(this.smaps[mapName]);
+            this.maps[mapName] = Map.ParseJson(mapData);
+        }
         localStorage.removeItem('state');
     }
 
@@ -829,7 +831,8 @@ class Game {
                     console.error('Unable to parse map: ' + file.src);
                     return;
                 }
-                this.dmaps[loadedMap.name] = loadedMap;
+                this.smaps[loadedMap.name] = JSON.stringify(jsonData);
+                this.maps[loadedMap.name] = loadedMap;
             } else if (jsonData.type !== undefined && jsonData.type === 'items') {
                 let itemsList = jsonData.items;
                 for (let i = 0; i < itemsList.length; i++) {
@@ -839,14 +842,6 @@ class Game {
             }
         }
     }
-
-    structuredClone(obj) {
-        const oldState = history.state;
-        history.replaceState(obj, null);
-        const clonedObj = history.state;
-        history.replaceState(oldState, null);
-        return clonedObj;
-    };
 
     debugMessage(who, what, extra = '') {
         if (this.debugContainer.visible) {
