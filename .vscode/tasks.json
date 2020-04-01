@@ -6,7 +6,6 @@
         {
             "type": "gulp",
             "task": "default",
-            "identifier": "default",
             "isBackground": true,
             "group": {
                 "kind": "build",

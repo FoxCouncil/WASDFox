@@ -4,8 +4,8 @@ const sass = require('gulp-sass');
 const clean = require('gulp-clean');
 const merge = require('gulp-merge-json');
 const concat = require('gulp-concat');
-const concatS = require('gulp-concat-sourcemap');
 const connect = require('gulp-connect');
+const sourcemaps = require('gulp-sourcemaps');
 
 function cleanBin() {
   return src('bin', {read: false, allowEmpty: true}).pipe(clean());
@@ -37,7 +37,11 @@ function js() {
     'src/js/agent.js', 
     'src/js/game.js', 
     'src/js/main.js'
-  ]).pipe(concat('game.js')).pipe(dest('bin/'));
+  ], { base: 'src' })
+  .pipe(sourcemaps.init())
+  .pipe(concat('game.js'))
+  .pipe(sourcemaps.write({includeContent: false, sourceRoot: '../src'}))
+  .pipe(dest('bin/'));
 }
 
 function css() {

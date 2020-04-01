@@ -8,14 +8,13 @@ class Game {
         this.maps = {};
         this.smaps = {};
         this.items = [];
+        this.cache = [];
         this.messages = [];
         this.activeAgents = {};
 
         this.firstDraw = true;
         this.currentMap = null;
         this.currentPlayer = null;
-        this.currentPlayerImage = new createjs.Bitmap(`art/spritefox-male.png`);
-        this.currentEnemyImage = new createjs.Bitmap('art/spriteskeleton.png');
 
         this.containerMap = new createjs.Container();
         this.containerPlayer = new createjs.Container();
@@ -39,6 +38,7 @@ class Game {
             document.body.appendChild(this.viewGui);
 
             this.loadTileset('art/tileset.png');
+            this.loadCharset('art/charset.png');
 
             this.stage = new createjs.Stage(this.canvasId);
             this.stage.addChild(this.containerMap);
@@ -222,9 +222,14 @@ class Game {
             let drawOffsetX = centerX - map.playerPos.x;
             let drawOffsetY = centerY - map.playerPos.y;
 
+            let char = new createjs.Sprite(this.charset);
+
             // Draw Agents
             let aEnemy = new createjs.Container();
-            aEnemy.addChild(this.currentEnemyImage.clone());
+
+            let aChar = char.clone();
+            aChar.gotoAndStop(1);
+            aEnemy.addChild(aChar);
 
             this.activeAgents = {};
             if (map.agents.length > 0) {
@@ -233,7 +238,7 @@ class Game {
                     if (!this.firstDraw) {
                         enemy.tick(this, map);
                     }
-                    this.activeAgents[`${enemy.pos.x}x${enemy.pos.y}`] = enemy;                   
+                    this.activeAgents[`${enemy.pos.x}x${enemy.pos.y}`] = enemy;
                 }
             }
 
@@ -286,7 +291,6 @@ class Game {
                             tileTotal++;
                         }
 
-                        if (aTileId === 5452) { debugger; }
                         if (layers.object[aTileId] != undefined && layers.object[aTileId] != 0) {
                             let aTile = tile.clone();
                             aTile.x = posX;
@@ -301,7 +305,7 @@ class Game {
                             this.containerMap.addChild(aTile);
                             tileTotal++;
                         }
-                        
+
                         let agentId = `${alterX}x${alterY}`;
                         let agentObj = this.activeAgents[agentId];
                         if (agentObj != null) {
@@ -320,7 +324,7 @@ class Game {
 
                             if (this.state != STATE_LOADINGMAP) {
                                 this.containerMap.addChild(textPos);
-                            }                            
+                            }
 
                             if (map.triggers[aTileId] != null) {
                                 let textTrigger = new createjs.Text('T', "40px Arial", "#F0F");
@@ -344,11 +348,12 @@ class Game {
 
                     if (x == centerX && y == centerY) {
                         if (this.containerPlayer.children.length === 0) {
-                            this.containerPlayer.addChild(this.currentPlayerImage);
+                            this.containerPlayer.addChild(char.clone());
                         }
 
-                        this.currentPlayerImage.x = x * this.tileSize;
-                        this.currentPlayerImage.y = y * this.tileSize;
+                        let aPlayer = this.containerPlayer.children[0];
+                        aPlayer.x = x * this.tileSize;
+                        aPlayer.y = y * this.tileSize;
                     }
                 }
             }
@@ -401,7 +406,7 @@ class Game {
         this.maps[this.currentMap].agents.push(newEnemy);
         this.draw();
     }
-    
+
     agentsClear() {
         this.maps[this.currentMap].agents = [];
         this.draw();
@@ -414,13 +419,13 @@ class Game {
                 this.showMessage(`You pick up ${item.name}`);
             }
             break;
-            
+
             default: {
                 this.currentPlayer.inventoryAddItem(item);
                 this.showMessage(`You pick up ${item.name}`);
             }
             break;
-        }        
+        }
     }
 
     playerDamage(agent) {
@@ -440,7 +445,7 @@ class Game {
         const realId = newX + newY * map.width;
 
         if (map.triggers[realId] != null) {
-            let triggerStr = map.triggers[realId]
+            let triggerStr = map.triggers[realId];
             let triggerRtn = eval(`(${triggerStr})`);
             if (triggerRtn) return;
         }
@@ -484,7 +489,11 @@ class Game {
     }
 
     toggleDebugView() {
-        this.debugContainer.visible = !this.debugContainer.visible;
+        this.debugView(!this.debugContainer.visible);
+    }
+
+    debugView(state) {
+        this.debugContainer.visible = state;
         if (this.debugContainer.visible) {
             this.viewDebug.classList.remove('hidden');
         } else {
@@ -529,7 +538,6 @@ class Game {
 
         return false;
     }
-    
 
     handleKeyboard(keyEvent) {
         switch (keyEvent.keyCode) {
@@ -680,7 +688,7 @@ class Game {
                         binds.value_hp.innerText = self.currentPlayer.health;
                         binds.value_total_hp.innerText = self.currentPlayer.totalHealth;
                         binds.value_hp_bar.style.backgroundSize = `auto ${parseInt(self.currentPlayer.health / self.currentPlayer.totalHealth * 100)}%`;
-                        
+
                         binds.value_mana.innerText = self.currentPlayer.magic;
                         binds.value_total_mana.innerText = self.currentPlayer.totalMagic;
                         binds.value_mana_bar.style.backgroundSize = `auto ${parseInt(self.currentPlayer.magic / self.currentPlayer.totalMagic * 100)}%`;
@@ -739,10 +747,11 @@ class Game {
             let map = this.maps[mapName];
             let mapStr = map.serialize();
             stateObj.maps.push(mapStr);
-        }        
+        }
         stateObj.currentMap = this.currentMap;
         stateObj.state = this.state.toString();
         stateObj.messages = this.messages;
+        stateObj.debug = this.debugContainer.visible;
         localStorage.setItem('state', JSON.stringify(stateObj));
     }
 
@@ -758,13 +767,14 @@ class Game {
         for (let mapIndex = 0; mapIndex < stateObj.maps.length; mapIndex++) {
             let map = Map.Deserialize(stateObj.maps[mapIndex]);
             let mapName = map.name;
-            this.maps[mapName] = map;            
+            this.maps[mapName] = map;
         }
         this.currentMap = stateObj.currentMap;
         this.currentPlayer = Player.Load(stateObj.player);
         this.messages = stateObj.messages;
+        this.debugView(stateObj.debug);
         this.stateSet(Utils.StringToState(stateObj.state));
-        
+
         return true;
     }
 
@@ -781,9 +791,12 @@ class Game {
 
     loadGui(name) {
         let self = this;
-        return fetch(`${name}.html`).then(function(http) {
-            return http.text();
-        }).then(function(html) {
+        let guiFilename = `${name}.html`;
+        let cacheCheck = new Promise(function(resolve) {
+            if (self.cache[guiFilename] !== undefined) { resolve(self.cache[guiFilename]); }
+            else { resolve(fetch(guiFilename).then(function(http) { let data = http.text(); self.cache[guiFilename] = data; return data; })); }
+        });
+        return cacheCheck.then(function(html) {
             self.gui = Object.assign({
                 name: name,
                 fragment: document.createRange().createContextualFragment(html),
@@ -808,6 +821,16 @@ class Game {
     loadTileset(tilesetUri) {
         this.tileset = new createjs.SpriteSheet({
             images: [tilesetUri],
+            frames: {
+                height: this.tileSize,
+                width: this.tileSize
+            }
+        });
+    }
+
+    loadCharset(charsetUri) {
+        this.charset = new createjs.SpriteSheet({
+            images: [charsetUri],
             frames: {
                 height: this.tileSize,
                 width: this.tileSize

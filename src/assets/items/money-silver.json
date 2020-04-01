@@ -1,10 +1,10 @@
 {
     "items": [
         {
-            "name": "Coins (2)",
+            "name": "Silver",
             "type": "money",
             "id": "10",
-            "value": "2"
+            "value": "10"
         }
     ]
 }
